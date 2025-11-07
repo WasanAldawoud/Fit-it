@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
+
 
 void main() {
   runApp(const FitnessApp());
 }
+
+
+class DialogExerciseState {
+  String name;
+  Duration? duration; // nullable for it can be not set yet
+  Set<String> days = {}; // Starts as an empty set of selected days
+
+  DialogExerciseState({required this.name, this.duration});
+}
+
+
 
 class FitnessApp extends StatelessWidget {
   const FitnessApp({super.key});
@@ -27,10 +40,12 @@ class FitnessApp extends StatelessWidget {
 class ExerciseCategory {
   final String name;
   final List<String> icons;
+  final List<String> exercises;
 
   const ExerciseCategory({
     required this.name,
     required this.icons,
+    required this.exercises,
   });
 }
 
@@ -43,26 +58,72 @@ class CreatePlanScreen extends StatefulWidget {
 }
 
 class CreatePlanScreenState extends State<CreatePlanScreen> {
+
+  // Workout Plan
+  final List<DialogExerciseState> planStates  = [];
+
+  // Plan Dialog Building
+  void makePlanDialog(ExerciseCategory category) async {
+
+    final existing = planStates
+        .where((plan) => category.exercises.contains(plan.name))
+        .toList();
+
+    final List<DialogExerciseState>? result = await showDialog<List<DialogExerciseState>>(
+      context: context,
+
+      builder: (context)  {
+        return ExerciseSelectionDialog(
+          category: category,
+          existingPlans: existing,
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        // Clear old plan for this category
+        planStates.removeWhere((item) => category.exercises.contains(item.name));
+
+        if (result.isNotEmpty) {
+          // If the user confirmed with at least one exercise...
+          planStates.addAll(result); // Add the new, updated plan
+          selectedCategories.add(category.name); // MARK THE CARD AS SELECTED
+        } else {
+          // If the user confirmed with an EMPTY plan (or cleared it)...
+          selectedCategories.remove(category.name); // MARK THE CARD AS DESELECTED
+        }
+
+      });
+    }
+  }
+
   // Exercise Categories
   final List<ExerciseCategory> categories = [
     ExerciseCategory(
         name: 'Cardio',
-        icons: ['assets/icons/cardio1.svg', 'assets/icons/cardio2.svg'],),
+        icons: ['assets/icons/cardio1.svg', 'assets/icons/cardio2.svg'],
+        exercises: ['brisk walking', 'running', 'cycling', 'swimming', 'dancing', 'Jumping rope'] ),
     ExerciseCategory(
         name: 'Yoga',
-        icons: ['assets/icons/yoga1.svg','assets/icons/yoga2.svg'],),
+        icons: ['assets/icons/yoga1.svg','assets/icons/yoga2.svg'],
+        exercises: [] ),
     ExerciseCategory(
         name: 'Swimming',
-        icons: ['assets/icons/swimming1.svg','assets/icons/swimming3.svg'],),
+        icons: ['assets/icons/swimming1.svg','assets/icons/swimming3.svg'],
+        exercises: [] ),
     ExerciseCategory(
         name: 'Pilates',
-        icons: ['assets/icons/pilates3.svg','assets/icons/pilates2.svg'],),
+        icons: ['assets/icons/pilates3.svg','assets/icons/pilates2.svg'],
+        exercises: [] ),
     ExerciseCategory(
         name: 'Stretching',
-        icons: ['assets/icons/stretching1.svg','assets/icons/stretching2.svg'],),
+        icons: ['assets/icons/stretching1.svg','assets/icons/stretching2.svg'],
+        exercises: [] ),
     ExerciseCategory(
         name: 'Cycling',
-        icons: ['assets/icons/cycling1.svg','assets/icons/cycling2.svg'],),
+        icons: ['assets/icons/cycling1.svg','assets/icons/cycling2.svg'],
+        exercises: [] ),
   ];
 
   // Set to store the names of selected categories
@@ -115,12 +176,12 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
                     final category = categories[index];
-                    final isSelected =
-                    selectedCategories.contains(category.name);
+                    final isSelected = selectedCategories.contains(category.name);
+
                     return CategoryCard(
                       category: category,
                       isSelected: isSelected,
-                      onTap: () => toggleCategory(category.name),
+                      onTap: () => makePlanDialog(category) ,
                     );
                   },
                 ),
@@ -176,6 +237,8 @@ class CategoryCard extends StatelessWidget {
     required this.onTap,
   });
 
+
+
   @override
   Widget build(BuildContext context) {
 
@@ -190,7 +253,7 @@ class CategoryCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  
+
                   // First Icon
                   SvgPicture.asset(
                     category.icons[0], // Access 1
@@ -209,7 +272,11 @@ class CategoryCard extends StatelessWidget {
                     width: 50.0,
                     height: 50.0,
                     colorFilter: ColorFilter.mode(
-                      (isSelected ? const Color(0xFF0073E6) : Color(0xFF00AEEF)),
+                        ((isSelected && (category.icons[1] == 'assets/icons/cardio2.svg')) ?
+                        const Color(0xFFFF0000):
+                        isSelected ?
+                      const Color(0xFF0073E6) :
+                      Color(0xFF00AEEF)),
                       BlendMode.srcIn,
                     ),
                   ),
@@ -252,11 +319,11 @@ class CategoryCard extends StatelessWidget {
 
       // IF SELECTED: double-border design
          Container(
-        padding: const EdgeInsets.all(3.0),
+        padding: const EdgeInsets.all(2.0),
         decoration: BoxDecoration(
           border: Border.all(
             color: const Color(0xFF00B2FF),
-            width: 2.0,
+            width: 1.5,
           ),
 
             borderRadius: BorderRadius.circular(16.0),
@@ -318,3 +385,258 @@ class CategoryCard extends StatelessWidget {
   }
 }
 
+class ExerciseSelectionDialog extends StatefulWidget {
+  final ExerciseCategory category;
+  final List<DialogExerciseState> existingPlans;
+
+  const ExerciseSelectionDialog({
+    super.key,
+    required this.category,
+    this.existingPlans = const []
+  });
+
+  @override
+  State<ExerciseSelectionDialog> createState() => ExerciseSelectionDialogState();
+}
+
+class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
+
+
+  // A list to hold the temporary state for each exercise in the dialog
+  late List<DialogExerciseState> planStates;
+
+  final List<String> weekDays = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'];
+
+  @override
+  void initState() {
+    super.initState();
+    // When the dialog is created, initialize the plan states from the category data
+    planStates = widget.category.exercises.map((exerciseName) {
+
+      // existing plan check for the specific exercise
+      final existing = widget.existingPlans.firstWhere(
+          (plan)=> plan.name == exerciseName,
+      // if found return it
+    // if not create a new one
+    orElse: () => DialogExerciseState(name: exerciseName)
+      );
+
+      return existing ;
+    }).toList();
+  }
+
+  Future<Duration?> showDurationInputDialog(Duration? duration) async {
+
+    final TextEditingController controller = TextEditingController();
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    // Pre-fill the text field if an initial duration exists
+    if (duration != null) {
+      final minutes = duration.inMinutes.toString().padLeft(2, '0');
+      final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+      controller.text = '$minutes:$seconds';
+    }
+
+    // To parse the text
+    Duration? parseDuration(String? input) {
+      if (input == null) return null;
+      try {
+        final parts = input.split(':');
+        if (parts.length == 2) {
+          final minutes = int.parse(parts[0]);
+          final seconds = int.parse(parts[1]);
+          if (seconds < 60) {
+            return Duration(minutes: minutes, seconds: seconds);
+          }
+        }
+      } catch (e) {  }
+      return null;
+    }
+
+    return await showDialog<Duration>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Set Duration'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true, // Automatically focus on Text Field
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
+                DurationInputFormatter(), // this formats exist at the very bottom of this code
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Duration (MM:SS)',
+                hintText: '15:00',
+              ),
+
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Validate the form before closing
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(context).pop(parseDuration(controller.text));
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void pickTime(int index) async {
+
+    //wait dialog result
+    final Duration? newDuration = await showDurationInputDialog(
+      planStates[index].duration, // Pass the existing duration
+    );
+
+      setState(() {
+        planStates[index].duration = newDuration;
+      });
+
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Plan Your ${widget.category.name}'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: planStates.length,
+          itemBuilder: (context, index) {
+
+            final exerciseState = planStates[index];
+            final durationText = exerciseState.duration != null
+                ? '${exerciseState.duration!.inMinutes}Min ${exerciseState.duration!.inSeconds % 60}Sec'
+                : 'Set Time';
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(exerciseState.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+
+                  // Row for Days
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: weekDays.map((day) {
+                      final isDaySelected = exerciseState.days.contains(day);
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (isDaySelected) {
+                              exerciseState.days.remove(day);
+                            } else {
+                              exerciseState.days.add(day);
+                            }
+                          });
+                        },
+                        child: CircleAvatar(
+                          radius: 14,
+                          backgroundColor: isDaySelected ? Colors.blue : Colors.grey.shade300,
+                          child: Text(day, style: TextStyle(color: isDaySelected ? Colors.white : Colors.black, fontSize: 10)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+
+
+
+                  const SizedBox(height: 8),
+
+                  // Row for Time
+                  InkWell(
+                    onTap: () => pickTime(index),
+                    child: Container(
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(durationText),
+                          const Icon(Icons.timer_outlined),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () {
+            // Filter out exercises where a duration was not set
+            final confirmedPlan = planStates.where((state) => state.duration != null).toList();
+            Navigator.of(context).pop(confirmedPlan);
+          },
+          child: const Text('Confirm'),
+        ),
+      ],
+    );
+  }
+}
+
+class DurationInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    final String newText = newValue.text;
+    final StringBuffer buffer = StringBuffer();
+    int colonCount = 0;
+
+    for (int i = 0; i < newText.length; i++) {
+      if (newText[i] == ':') {
+        colonCount++;
+        if (colonCount > 1) { // Only allow one colon
+          break;
+        }
+      }
+      buffer.write(newText[i]);
+    }
+
+    String formattedText = buffer.toString();
+
+    // Add colon automatically if two digits for minutes are entered
+    if (formattedText.length == 2 && !formattedText.contains(':')) {
+      formattedText += ':';
+    }
+
+    // Limit length to MM:SS (5 characters)
+    if (formattedText.length > 5) {
+      formattedText = formattedText.substring(0, 5);
+    }
+
+    return TextEditingValue(
+      text: formattedText,
+      selection: TextSelection.collapsed(offset: formattedText.length),
+    );
+  }
+}
