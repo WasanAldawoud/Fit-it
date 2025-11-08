@@ -449,7 +449,7 @@ class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
             return Duration(minutes: minutes, seconds: seconds);
           }
         }
-      } catch (e) {  }
+      } catch (e) { }
       return null;
     }
 
@@ -470,8 +470,16 @@ class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
               ],
               decoration: const InputDecoration(
                 labelText: 'Duration (MM:SS)',
-                hintText: '15:00',
+                hintText: '05:30',
               ),
+              validator: (value) {
+
+                int seconds = int.parse(value!.split(':')[1]);
+                if (seconds >= 60) {
+                  return 'Seconds must be less than 60 SEC';
+                }
+                return null;
+              }
 
             ),
           ),
@@ -482,10 +490,25 @@ class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
             ),
             TextButton(
               onPressed: () {
-                // Validate the form before closing
-                if (formKey.currentState!.validate()) {
-                  Navigator.of(context).pop(parseDuration(controller.text));
+
+                String input = controller.text;
+
+                //fulfill 'MM:' automatically to 'MM:00'
+                if(input.endsWith(':'))
+                {
+                  input += '00';
+                  controller.text = input;
+                  controller.selection = TextSelection.fromPosition(
+                    TextPosition(offset: input.length),
+                  );
                 }
+
+
+                // validate the form
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(context).pop(parseDuration(input));
+                }
+
               },
               child: const Text('OK'),
             ),
@@ -517,6 +540,7 @@ class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
         child: ListView.builder(
           shrinkWrap: true,
           itemCount: planStates.length,
+
           itemBuilder: (context, index) {
 
             final exerciseState = planStates[index];
@@ -530,6 +554,7 @@ class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(exerciseState.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+
                   const SizedBox(height: 8),
 
                   // Row for Days
@@ -602,8 +627,7 @@ class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
 
 class DurationInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     if (newValue.text.isEmpty) {
       return newValue;
     }
@@ -633,6 +657,13 @@ class DurationInputFormatter extends TextInputFormatter {
     if (formattedText.length > 5) {
       formattedText = formattedText.substring(0, 5);
     }
+
+    if (formattedText == '00:00') { // Reset to empty if 00:00
+      formattedText =  '';
+    }
+
+
+
 
     return TextEditingValue(
       text: formattedText,
