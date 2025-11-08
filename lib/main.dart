@@ -107,7 +107,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
     ExerciseCategory(
         name: 'Yoga',
         icons: ['assets/icons/yoga1.svg','assets/icons/yoga2.svg'],
-        exercises: [] ),
+        exercises: ['Downward Facing Dog', 'Mountain Pose', 'Tree Pose', 'Warrior 2','Cat Pose and Cow Pose', 'Chair Pose', 'Cobra Pose', 'Child\'s Pose'] ),
     ExerciseCategory(
         name: 'Swimming',
         icons: ['assets/icons/swimming1.svg','assets/icons/swimming3.svg'],
@@ -115,11 +115,11 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
     ExerciseCategory(
         name: 'Pilates',
         icons: ['assets/icons/pilates3.svg','assets/icons/pilates2.svg'],
-        exercises: [] ),
+        exercises: ['Pelvic Curl', 'Chest Lift', 'Chest Lift with Rotation', 'Spine Twist Supine', 'Single Leg Stretch', 'Roll Up', 'Roll-Like-a-Ball', 'Leg Circles'] ),
     ExerciseCategory(
         name: 'Stretching',
         icons: ['assets/icons/stretching1.svg','assets/icons/stretching2.svg'],
-        exercises: [] ),
+        exercises: ['Hamstring stretch', 'Standing calf stretch', 'Shoulder stretch', 'Triceps stretch', 'Knee to chest', 'Quad stretch', 'Cat Cow', 'Child\'s Pose', 'Quadriceps stretch', 'Kneeling hip flexor stretch', 'Side stretch', 'Chest and shoulder stretch', 'Neck Stretch', 'Spinal Twist', 'Bicep stretch', 'Cobra'] ),
     ExerciseCategory(
         name: 'Cycling',
         icons: ['assets/icons/cycling1.svg','assets/icons/cycling2.svg'],
@@ -129,15 +129,15 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   // Set to store the names of selected categories
   final Set<String> selectedCategories = {};
 
-  void toggleCategory(String categoryName) {
-    setState(() {
-      if (selectedCategories.contains(categoryName)) {
-        selectedCategories.remove(categoryName);
-      } else {
-        selectedCategories.add(categoryName);
-      }
-    });
-  }
+  // void toggleCategory(String categoryName) {
+  //   setState(() {
+  //     if (selectedCategories.contains(categoryName)) {
+  //       selectedCategories.remove(categoryName);
+  //     } else {
+  //       selectedCategories.add(categoryName);
+  //     }
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -405,7 +405,7 @@ class ExerciseSelectionDialogState extends State<ExerciseSelectionDialog> {
   // A list to hold the temporary state for each exercise in the dialog
   late List<DialogExerciseState> planStates;
 
-  final List<String> weekDays = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'];
+  final List<String> weekDays = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
 
   @override
   void initState() {
