@@ -3,6 +3,8 @@
 
 import 'package:flutter/material.dart';
 import 'features/signin_signup/signin_screen.dart';
+import 'features/plan_creation/presentation/screens/create_plan_screen.dart';  // Import the CreatePlanScreen for tests
+
 
 void main() {
   runApp(const MyApp());
@@ -17,6 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: const SigninScreen(),
+      // home: const CreatePlanScreen(),
     );
   }
 }
