@@ -1,5 +1,8 @@
+// import 'package:flutter/material.dart';
+// import 'package:/frontendscreen/choosing_screen/signin_screen.dart';
+
 import 'package:flutter/material.dart';
-import 'package:frontendscreen/screens/signin_screen.dart';
+import 'features/signin_signup/signin_screen.dart';
 
 void main() {
   runApp(const MyApp());
