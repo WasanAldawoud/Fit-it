@@ -1,8 +1,15 @@
+// import 'package:flutter/material.dart';
+// import 'package:flutter/gestures.dart';
+// import 'package:frontendscreen/app_styles/custom_widgets.dart';
+// import 'package:frontendscreen/app_styles/color_constants.dart';
+// import 'choosing_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:frontendscreen/app_styles/custom_widgets.dart';
-import '../app_styles/color_constants.dart';
-import 'choosing_screen.dart';
+import '../../app_styles/custom_widgets.dart';
+import '../../app_styles/color_constants.dart';
+import '../choosing_screen/choosing_screen.dart';
+
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});

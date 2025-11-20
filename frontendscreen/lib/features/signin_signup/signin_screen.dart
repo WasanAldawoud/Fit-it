@@ -1,8 +1,14 @@
+// import 'package:flutter/material.dart';
+// import 'package:frontendscreen/app_styles/color_constants.dart';
+// import 'package:frontendscreen/app_styles/custom_widgets.dart';
+// import 'package:frontendscreen/choosing_screen/home_page.dart';
+// import 'package:frontendscreen/choosing_screen/signup_screen.dart';
+
 import 'package:flutter/material.dart';
-import 'package:frontendscreen/app_styles/color_constants.dart';
-import 'package:frontendscreen/app_styles/custom_widgets.dart';
-import 'package:frontendscreen/screens/home_page.dart';
-import 'package:frontendscreen/screens/signup_screen.dart';
+import '../../app_styles/color_constants.dart';
+import '../../app_styles/custom_widgets.dart';
+import '../home_page/home_page.dart';
+import 'signup_screen.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
