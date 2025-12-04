@@ -188,7 +188,7 @@ class _SignupPageState extends State<SignupPage> {
                         if (isFormValid) {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => ChoosingScreen()),
+                            MaterialPageRoute(builder: (_) => choosing_screen()),//تصميم عمر 
                           );
                         } else {
                           // هنا ممكن تضيفي رسائل الخطأ أو تترك الزر يعمل فقط إذا صحيح
