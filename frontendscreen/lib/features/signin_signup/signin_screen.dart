@@ -9,7 +9,10 @@ import '../../app_styles/color_constants.dart';
 import '../../app_styles/custom_widgets.dart';
 import '../home_page/home_page.dart';
 import 'signup_screen.dart';
-
+// ⚠️  to talk to the backend
+import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
 
@@ -21,7 +24,74 @@ class _SigninScreenState extends State<SigninScreen> {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
   bool isPasswordVisible = false;
+  bool isLoading = false;
+ //--- NEW FUNCTION: Connects to Node.js for Sign In ---
+  Future<void> signInUser() async {
+    setState(() {
+      isLoading = true; // Start loading
+    });
 
+    
+    String baseUrl;
+
+if (kIsWeb) {
+  // For Chrome/Web
+  baseUrl = 'http://localhost:3000/auth/signin'; 
+} else {
+  // For Android Emulator
+  baseUrl = 'http://10.0.2.2:3000/auth/signin'; 
+}
+
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": usernameController.text,
+          "password": passwordController.text,
+        }),
+      );
+
+      if (!mounted) return; // Check if widget is still on screen
+
+      if (response.statusCode == 200) {
+        // SUCCESS: The server returns a 200 OK after successful login
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Signed in successfully!")),
+        );
+
+        // Navigate to the main app page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomePage()),
+        );
+      } else {
+        // FAILURE: Show error from backend (e.g., wrong credentials)
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? "Sign in failed"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // NETWORK ERROR (Server down or wrong IP/Port)
+      print("Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Connection failed. Is the server running? Error: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false; // Stop loading
+        });
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,20 +152,29 @@ class _SigninScreenState extends State<SigninScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CustomButton(
-                        title: "Sign In",
-                        onTap: () {
-                          if (usernameController.text.isNotEmpty &&
-                              passwordController.text.isNotEmpty) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => HomePage()),
-                            );
-                          }
-                        },
-                        backgroundColor: Colors.white,
-                        buttonKey: const ValueKey('sign_in_button'),
-                      ),
+                      // --- Update 1: Replace CustomButton with logic ---
+                      isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : CustomButton(
+                              title: "Sign In",
+                              onTap: () {
+                                if (usernameController.text.isNotEmpty &&
+                                    passwordController.text.isNotEmpty) {
+                                  // 🔑 CALL THE NEW BACKEND FUNCTION
+                                  signInUser(); 
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            "Please enter both username and password")),
+                                  );
+                                }
+                              },
+                              backgroundColor: Colors.white,
+                              buttonKey: const ValueKey('sign_in_button'),
+                            ),
+                      // --- End Update 1 ---
+
                       const SizedBox(width: 15),
                       CustomButton(
                         title: "Create Account",

@@ -6,10 +6,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+
+import 'dart:convert'; // Needed for JSON encoding/decoding
+import 'package:http/http.dart' as http; // Needed to talk to the server
+import 'package:flutter/foundation.dart'; // for kIsWeb
+
 import '../../app_styles/custom_widgets.dart';
 import '../../app_styles/color_constants.dart';
 import '../choosing_screen/choosing_screen.dart';
-
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -26,14 +30,15 @@ class _SignupPageState extends State<SignupPage> {
 
   bool isPasswordVisible = false;
 
-  // رسائل التحقق لكل حقل
+  // Validation messages
   String? usernameError;
   String? emailError;
   String? passwordError;
   String? confirmPasswordError;
 
   bool isFormValid = false;
-  bool startedTyping = false; // لتجنب ظهور الرسائل قبل الكتابة
+  bool startedTyping = false;
+  bool isLoading = false; // To show a loading spinner while signing up
 
   void validateForm() {
     setState(() {
@@ -53,15 +58,83 @@ class _SignupPageState extends State<SignupPage> {
 
       confirmPasswordError =
           confirmPasswordController.text != passwordController.text
-          ? "Passwords do not match"
-          : null;
+              ? "Passwords do not match"
+              : null;
 
-      isFormValid =
-          usernameError == null &&
+      isFormValid = usernameError == null &&
           emailError == null &&
           passwordError == null &&
           confirmPasswordError == null;
     });
+  }
+
+  // --- NEW FUNCTION: Connects to Node.js ---
+  Future<void> signupUser() async {
+    setState(() {
+      isLoading = true; // Start loading
+    });
+
+    // NOTE: Use '10.0.2.2' for Android Emulator. Use 'localhost' for iOS Simulator.
+    // Use your computer's IP (e.g., 192.168.1.5) for a real physical device.
+    String baseUrl;
+
+if (kIsWeb) {
+  // For Chrome/Web
+  baseUrl = 'http://localhost:3000/auth/signup'; 
+} else {
+  // For Android Emulator
+  baseUrl = 'http://10.0.2.2:3000/auth/signup'; 
+}
+
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": usernameController.text,
+          "email": emailController.text,
+          "password": passwordController.text,
+        }),
+      );
+
+      if (!mounted) return; // Check if widget is still on screen
+
+      if (response.statusCode == 201) {
+        // SUCCESS: Navigate to Choosing Screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Account created successfully!")),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => ChoosingScreen()),
+        );
+      } else {
+        // FAILURE: Show error from backend
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? "Signup failed"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // NETWORK ERROR (Server down or wrong IP)
+      print("Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Connection failed. Is the server running? Error: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false; // Stop loading
+        });
+      }
+    }
   }
 
   @override
@@ -94,7 +167,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                     const SizedBox(height: 60),
 
-                    // حقول التسجيل مع رسائل التحقق تظهر فقط بعد الكتابة
+                    // Inputs
                     CustomTextField(
                       controller: usernameController,
                       hintText: "Username",
@@ -103,16 +176,7 @@ class _SignupPageState extends State<SignupPage> {
                       onChanged: (_) => validateForm(),
                     ),
                     if (startedTyping && usernameError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          usernameError!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                      _buildErrorText(usernameError!),
                     const SizedBox(height: 20),
 
                     CustomTextField(
@@ -123,16 +187,7 @@ class _SignupPageState extends State<SignupPage> {
                       onChanged: (_) => validateForm(),
                     ),
                     if (startedTyping && emailError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          emailError!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                      _buildErrorText(emailError!),
                     const SizedBox(height: 20),
 
                     CustomTextField(
@@ -149,16 +204,7 @@ class _SignupPageState extends State<SignupPage> {
                       },
                     ),
                     if (startedTyping && passwordError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          passwordError!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                      _buildErrorText(passwordError!),
                     const SizedBox(height: 20),
 
                     CustomTextField(
@@ -170,34 +216,25 @@ class _SignupPageState extends State<SignupPage> {
                       onChanged: (_) => validateForm(),
                     ),
                     if (startedTyping && confirmPasswordError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          confirmPasswordError!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                      _buildErrorText(confirmPasswordError!),
                     const SizedBox(height: 30),
 
-                    // زر إنشاء الحساب
-                    ElevatedButton(
+                    // Create Account Button
+                    isLoading 
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : ElevatedButton(
                       onPressed: () {
                         if (isFormValid) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => choosing_screen()),//تصميم عمر 
-                          );
+                          // Call the new backend function
+                          signupUser();
                         } else {
-                          // هنا ممكن تضيفي رسائل الخطأ أو تترك الزر يعمل فقط إذا صحيح
-                          print("Form is invalid");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Please fix errors first")),
+                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            ColorConstants.accentColor, // اللون الأصلي
+                        backgroundColor: ColorConstants.accentColor,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 40,
                           vertical: 14,
@@ -211,14 +248,14 @@ class _SignupPageState extends State<SignupPage> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white, // النص ثابت أبيض
+                          color: Colors.white,
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // رابط تسجيل الدخول
+                    // Sign In Link
                     RichText(
                       text: TextSpan(
                         text: "Already have an account?",
@@ -279,6 +316,20 @@ class _SignupPageState extends State<SignupPage> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // Helper widget for error text to keep code clean
+  Widget _buildErrorText(String error) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        error,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
         ),
       ),
     );
