@@ -13,9 +13,6 @@ import 'signup_screen.dart';
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:http/browser_client.dart';
-
-import 'dart:io'; //to use it on device 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
 
@@ -30,62 +27,71 @@ class _SigninScreenState extends State<SigninScreen> {
   bool isLoading = false;
  //--- NEW FUNCTION: Connects to Node.js for Sign In ---
   Future<void> signInUser() async {
-  setState(() => isLoading = true);
+    setState(() {
+      isLoading = true; // Start loading
+    });
 
-  String baseUrl; 
-  
-  if (kIsWeb) {
-  // 1. Running in a Chrome Browser (localhost is fine here)
-  baseUrl = 'http://localhost:3000/auth/signup'; 
-} else if (Platform.isAndroid) {
-  // 2. Running on Android
-  // Note: You need to import 'import 'dart:io';' for 'Platform'
-  
-  // Choose ONE of these:
-  // baseUrl = 'http://10.0.2.2:3000/auth/signup'; // For Emulator
-  baseUrl = 'http://26.35.223.225:3000/auth/signup'; // For Physical Device via Wi-Fi
+    
+    String baseUrl;
+
+if (kIsWeb) {
+  // For Chrome/Web
+  baseUrl = 'http://localhost:3000/auth/signin'; 
 } else {
-  // 3. For iOS Simulator or other platforms
-  baseUrl = 'http://localhost:3000/auth/signup';
+  // For Android Emulator
+  baseUrl = 'http://10.0.2.2:3000/auth/signin'; 
 }
-  try {
-    var client = http.Client();
-    if (kIsWeb) {
-      client = BrowserClient()..withCredentials = true; // Essential for session cookies
-    }
 
-    final response = await client.post(
-      Uri.parse(baseUrl),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "username": usernameController.text, // Sending only what's needed
-        "password": passwordController.text,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": usernameController.text,
+          "password": passwordController.text,
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      if (!mounted) return;
+      if (!mounted) return; // Check if widget is still on screen
+
+      if (response.statusCode == 200) {
+        // SUCCESS: The server returns a 200 OK after successful login
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Signed in successfully!")),
+        );
+
+        // Navigate to the main app page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomePage()),
+        );
+      } else {
+        // FAILURE: Show error from backend (e.g., wrong credentials)
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? "Sign in failed"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // NETWORK ERROR (Server down or wrong IP/Port)
+      print("Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Signed in successfully!")),
+        SnackBar(
+          content: Text("Connection failed. Is the server running? Error: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    } else {
-      final errorData = jsonDecode(response.body);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorData['error'] ?? "Sign in failed")),
-      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false; // Stop loading
+        });
+      }
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Connection failed: $e")),
-    );
-  } finally {
-    if (mounted) setState(() => isLoading = false);
   }
-}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
