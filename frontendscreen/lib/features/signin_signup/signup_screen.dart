@@ -10,8 +10,7 @@ import 'package:flutter/gestures.dart';
 import 'dart:convert'; // Needed for JSON encoding/decoding
 import 'package:http/http.dart' as http; // Needed to talk to the server
 import 'package:flutter/foundation.dart'; // for kIsWeb
-import 'package:http/browser_client.dart';
-import 'dart:io'; //to use it on device 
+
 import '../../app_styles/custom_widgets.dart';
 import '../../app_styles/color_constants.dart';
 import '../choosing_screen/choosing_screen.dart';
@@ -80,36 +79,23 @@ class _SignupPageState extends State<SignupPage> {
     String baseUrl;
 
 if (kIsWeb) {
-  // 1. Running in a Chrome Browser (localhost is fine here)
+  // For Chrome/Web
   baseUrl = 'http://localhost:3000/auth/signup'; 
-} else if (Platform.isAndroid) {
-  // 2. Running on Android
-  // Note: You need to import 'import 'dart:io';' for 'Platform'
-  
-  // Choose ONE of these:
-  // baseUrl = 'http://10.0.2.2:3000/auth/signup'; // For Emulator
-  baseUrl = 'http://26.35.223.225:3000/auth/signup'; // For Physical Device via Wi-Fi
 } else {
-  // 3. For iOS Simulator or other platforms
-  baseUrl = 'http://localhost:3000/auth/signup';
+  // For Android Emulator
+  baseUrl = 'http://10.0.2.2:3000/auth/signup'; 
 }
 
     try {
-    // IMPORTANT: Use BrowserClient withCredentials for Web
-    var client = http.Client();
-    if (kIsWeb) {
-      client = BrowserClient()..withCredentials = true;
-    }
-
-    final response = await client.post(
-      Uri.parse(baseUrl),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "username": usernameController.text,
-         "email"  :emailController.text,
-        "password": passwordController.text,
-      }),
-    );
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": usernameController.text,
+          "email": emailController.text,
+          "password": passwordController.text,
+        }),
+      );
 
       if (!mounted) return; // Check if widget is still on screen
 
@@ -121,7 +107,7 @@ if (kIsWeb) {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => choosing_screen()),
+          MaterialPageRoute(builder: (_) => ChoosingScreen()),
         );
       } else {
         // FAILURE: Show error from backend
@@ -143,7 +129,7 @@ if (kIsWeb) {
         ),
       );
     } finally {
-      if (mounted) setState(() => isLoading = false); {
+      if (mounted) {
         setState(() {
           isLoading = false; // Stop loading
         });

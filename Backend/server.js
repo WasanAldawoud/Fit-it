@@ -15,7 +15,6 @@ import db from './config/db.js';
 import './config/passport.js'; 
 
 import authRoutes from './routes/authRoutes.js';
-import planRoutes from './routes/planRoutes.js';
 
 // Load secret keys from .env file
 dotenv.config();
@@ -54,7 +53,6 @@ app.use(passport.session()); // This checks the cookie on every request to see w
 // "If anyone asks for /auth/signup, send them to the authRoutes file."
 //Tells Express that all routes defined in authRoutes.js (like /signup) should be accessed under the /auth prefix. The full path is now /auth/signup.
 app.use('/auth', authRoutes);
-app.use('/api', planRoutes);
 
 // --- 5. Start (The Switch) ---
 const PORT = process.env.PORT || 3000;
