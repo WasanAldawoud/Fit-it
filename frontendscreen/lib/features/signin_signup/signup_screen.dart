@@ -10,7 +10,8 @@ import 'package:flutter/gestures.dart';
 import 'dart:convert'; // Needed for JSON encoding/decoding
 import 'package:http/http.dart' as http; // Needed to talk to the server
 import 'package:flutter/foundation.dart'; // for kIsWeb
-
+import 'package:http/browser_client.dart';
+import 'dart:io'; //to use it on device 
 import '../../app_styles/custom_widgets.dart';
 import '../../app_styles/color_constants.dart';
 import '../choosing_screen/choosing_screen.dart';
@@ -78,24 +79,30 @@ class _SignupPageState extends State<SignupPage> {
     // Use your computer's IP (e.g., 192.168.1.5) for a real physical device.
     String baseUrl;
 
-if (kIsWeb) {
-  // For Chrome/Web
-  baseUrl = 'http://localhost:3000/auth/signup'; 
+  if (kIsWeb) {
+  baseUrl = 'http://localhost:3000/auth/signup'; // ✅ CORRECT
+} else if (Platform.isAndroid) {
+  baseUrl = 'http://26.35.223.225:3000/auth/signup'; // ✅ CORRECT
 } else {
-  // For Android Emulator
-  baseUrl = 'http://10.0.2.2:3000/auth/signup'; 
+  baseUrl = 'http://localhost:3000/auth/signup'; // ✅ CORRECT
 }
 
     try {
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "username": usernameController.text,
-          "email": emailController.text,
-          "password": passwordController.text,
-        }),
-      );
+    // IMPORTANT: Use BrowserClient withCredentials for Web
+    var client = http.Client();
+    if (kIsWeb) {
+      client = BrowserClient()..withCredentials = true;
+    }
+
+    final response = await client.post(
+      Uri.parse(baseUrl),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "username": usernameController.text,
+         "email"  :emailController.text,
+        "password": passwordController.text,
+      }),
+    );
 
       if (!mounted) return; // Check if widget is still on screen
 
@@ -107,7 +114,7 @@ if (kIsWeb) {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => ChoosingScreen()),
+          MaterialPageRoute(builder: (_) => choosing_screen()),
         );
       } else {
         // FAILURE: Show error from backend
@@ -129,7 +136,7 @@ if (kIsWeb) {
         ),
       );
     } finally {
-      if (mounted) {
+      if (mounted) setState(() => isLoading = false); {
         setState(() {
           isLoading = false; // Stop loading
         });
@@ -334,4 +341,4 @@ if (kIsWeb) {
       ),
     );
   }
-}
+} 

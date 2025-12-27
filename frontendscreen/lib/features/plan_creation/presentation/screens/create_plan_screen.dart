@@ -4,6 +4,12 @@ import '../widgets/exercise_selection_dialog.dart';
 import'../../data/models/dialog_exercise_state.dart';
 import'../../data/models/exercise_category.dart';
 
+import 'dart:convert'; // For jsonEncode
+import 'package:http/http.dart' as http; // For network requests
+import 'package:flutter/foundation.dart'; // For kIsWeb check
+import '../../../home_page/home_page.dart'; // To navigate after saving
+import 'package:http/browser_client.dart'; // Add this for Web support
+import 'dart:io'; //to use it on device 
 /// A screen where users can create a custom workout plan.
 ///
 /// This screen displays a grid of exercise categories. Tapping a category
@@ -30,6 +36,79 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   ///
   /// When the dialog is closed, it updates the [planStates] with the new or
   /// modified exercise selections.
+  
+  Future<void> savePlanToDatabase() async {
+    if (planStates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select at least one exercise")),
+      );
+      return;
+    }
+
+    // Determine URL based on platform (Same logic as your Sign-up)
+   String baseUrl; 
+  
+ if (kIsWeb) {
+  baseUrl = 'http://localhost:3000/auth/save-plan'; // ✅ CORRECT
+} else if (Platform.isAndroid) {
+  baseUrl = 'http://26.35.223.225:3000/auth/save-plan'; // ✅ CORRECT
+} else {
+  baseUrl = 'http://localhost:3000/auth/save-plan'; // ✅ CORRECT
+}
+    // Map your planStates (UI) to the Database Schema
+    final List<Map<String, dynamic>> exercisesJson = planStates.map((state) {
+      // Logic to find which category this exercise belongs to
+      final categoryName = categories.firstWhere(
+        (cat) => cat.exercises.contains(state.name),
+        orElse: () => categories[0],
+      ).name;
+
+      return {
+        "category": categoryName,
+        "name": state.name,
+        // Convert Duration to string "MM:SS"
+        "duration": "${state.duration!.inMinutes}m ${state.duration!.inSeconds % 60}s",
+        "days": state.days.toList(), // Convert Set to List for PostgreSQL TEXT[]
+      };
+    }).toList();
+
+    try {
+    // --- THE FIX STARTS HERE ---
+      // We create a special 'client' that is capable of sending cookies on Web
+      var client = http.Client();
+      
+      if (kIsWeb) {
+        // This line tells the browser: "Attach the Session Cookie to this request"
+        client = BrowserClient()..withCredentials = true;
+      }
+
+      final response = await client.post(
+        Uri.parse(baseUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "plan_name": "My Custom Workout",
+          "exercises": exercisesJson,
+        }),
+      );
+      if (response.statusCode == 201) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Plan saved to your account!")),
+        );
+        // Go to Home Page after successful save
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      } else {
+        throw Exception("Server returned ${response.statusCode}");
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save plan: $e")),
+      );
+    }
+  }
   void makePlanDialog(ExerciseCategory category) async {
 
     final existing = planStates
@@ -158,7 +237,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
                   borderRadius: BorderRadius.circular(30.0),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {/* TODO: Navigate to the next screen to finalize the plan */},
+                  onPressed: () => savePlanToDatabase(),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 20.0),
                     backgroundColor: Colors.transparent,
@@ -182,4 +261,4 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
       ),
     );
   }
-}
+} 

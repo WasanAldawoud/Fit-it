@@ -13,6 +13,9 @@ import 'signup_screen.dart';
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http/browser_client.dart';
+
+import 'dart:io'; //to use it on device 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
 
@@ -27,71 +30,55 @@ class _SigninScreenState extends State<SigninScreen> {
   bool isLoading = false;
  //--- NEW FUNCTION: Connects to Node.js for Sign In ---
   Future<void> signInUser() async {
-    setState(() {
-      isLoading = true; // Start loading
-    });
+  setState(() => isLoading = true);
 
-    
-    String baseUrl;
-
-if (kIsWeb) {
-  // For Chrome/Web
-  baseUrl = 'http://localhost:3000/auth/signin'; 
+  String baseUrl; 
+  
+  if (kIsWeb) {
+  baseUrl = 'http://localhost:3000/auth/signin'; // ✅ CORRECT
+} else if (Platform.isAndroid) {
+  baseUrl = 'http://26.35.223.225:3000/auth/signin'; // ✅ CORRECT
 } else {
-  // For Android Emulator
-  baseUrl = 'http://10.0.2.2:3000/auth/signin'; 
+  baseUrl = 'http://localhost:3000/auth/signin'; // ✅ CORRECT
 }
-
-    try {
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "username": usernameController.text,
-          "password": passwordController.text,
-        }),
-      );
-
-      if (!mounted) return; // Check if widget is still on screen
-
-      if (response.statusCode == 200) {
-        // SUCCESS: The server returns a 200 OK after successful login
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Signed in successfully!")),
-        );
-
-        // Navigate to the main app page
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => HomePage()),
-        );
-      } else {
-        // FAILURE: Show error from backend (e.g., wrong credentials)
-        final errorData = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorData['error'] ?? "Sign in failed"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      // NETWORK ERROR (Server down or wrong IP/Port)
-      print("Error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Connection failed. Is the server running? Error: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false; // Stop loading
-        });
-      }
+  try {
+    var client = http.Client();
+    if (kIsWeb) {
+      client = BrowserClient()..withCredentials = true; // Essential for session cookies
     }
+
+    final response = await client.post(
+      Uri.parse(baseUrl),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "username": usernameController.text, // Sending only what's needed
+        "password": passwordController.text,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Signed in successfully!")),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } else {
+      final errorData = jsonDecode(response.body);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorData['error'] ?? "Sign in failed")),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Connection failed: $e")),
+    );
+  } finally {
+    if (mounted) setState(() => isLoading = false);
   }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
