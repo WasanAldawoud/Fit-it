@@ -25,8 +25,20 @@ const PgSession = pgSimple(session);
 // --- 1. Middleware (The Doormen) ---
 // CORS: Lets your Flutter app talk to this server even though they are on different ports.
 //Allows the server to accept requests from different origins (like Flutter app running on a different port/IP)
-app.use(cors()); 
-
+// 2. Configure it properly
+app.use(cors({
+  origin: function (origin, callback) {
+    // This allows any origin that sends a request, which is perfect for dev
+    if (!origin || origin.startsWith('http://localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, //Allows cookies to be sent from Flutter
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 // Body Parsers: These allow the server to read the JSON data sent inside req.body.
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -35,13 +47,18 @@ app.use(express.urlencoded({ extended: true }));
 // This tells the server: "When a user logs in, save their info in the 'sessions' table".
 app.use(session({
   store: new PgSession({
-    pool: db,                // Use our DB connection
-    tableName: 'sessions'    // Save to this specific SQL table
+    pool: db,
+    tableName: process.env.SESSION_TABLE
   }),
-  secret: process.env.SESSION_SECRET, // Encrypts the cookie ID
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // Cookie lasts 30 days
+  cookie: { 
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    httpOnly: true, // Recommended for security
+    secure: false,  // MUST be false because you we are using http://localhost (not https)
+    sameSite: 'lax' // Allows the cookie to be sent across different ports on localhost
+  }
 }));
 
 // --- 3. Passport Init (The ID Check) ---
@@ -56,6 +73,6 @@ app.use('/auth', authRoutes);
 
 // --- 5. Start (The Switch) ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT,'0.0.0.0', () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

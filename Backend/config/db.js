@@ -32,4 +32,4 @@ const db = new pg.Pool({
 
 // 10. Export this configured 'db' connection.
 // Other files can now import this 'db' variable to run SQL queries.
-export default db;
+export default db; // Makes db available everywhere (controllers, passport)
