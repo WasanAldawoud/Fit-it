@@ -30,6 +30,8 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
+
+/// this is JUST a placeholder for the ai chat screen  
 class _AiChatPlaceholder extends StatelessWidget {
   const _AiChatPlaceholder();
   @override
