@@ -4,8 +4,8 @@ import '../plan_creation/presentation/screens/create_plan_screen.dart';
 
 ///ملف الإختيار
 
-class choosing_screen extends StatelessWidget {
-  const choosing_screen({super.key});
+class ChoosingScreen extends StatelessWidget {
+  const ChoosingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

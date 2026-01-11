@@ -3,13 +3,17 @@ import '../widgets/category_card.dart';
 import '../widgets/exercise_selection_dialog.dart';
 import'../../data/models/dialog_exercise_state.dart';
 import'../../data/models/exercise_category.dart';
+import '../../../common/main_shell.dart'; // To navigate after saving
+import 'plan_goal_screen.dart';
 
 import 'dart:convert'; // For jsonEncode
 import 'package:http/http.dart' as http; // For network requests
 import 'package:flutter/foundation.dart'; // For kIsWeb check
 import '../../../home_page/home_page.dart'; // To navigate after saving
 import 'package:http/browser_client.dart'; // Add this for Web support
-import 'dart:io'; //to use it on device 
+import 'dart:io'; //to use it on device
+import '../../../common/plan_controller.dart';
+
 /// A screen where users can create a custom workout plan.
 ///
 /// This screen displays a grid of exercise categories. Tapping a category
@@ -27,6 +31,32 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   /// Each [DialogExerciseState] contains the exercise name, duration, and selected days.
   /// This is the main data structure representing the user's workout plan.
   final List<DialogExerciseState> planStates  = [];
+  
+
+  /// Step 2 (PlanGoalScreen) output.
+  ///
+  /// These are OPTIONAL settings controlled by checkboxes in Step 2.
+  /// If a checkbox is disabled, the corresponding value is `null`.
+  ///
+  /// BACKEND: These map to `/auth/save-plan` payload keys:
+  /// - selectedGoal -> `goal` (String?)
+  /// - selectedWeeks -> `duration_weeks` (int?)
+  /// - selectedDeadline -> `deadline` (String? ISO 8601)
+  /// - selectedCurrentWeight -> `current_weight` (double?)
+  /// - selectedGoalWeight -> `goal_weight` (double?)
+  String? selectedGoal;
+
+  /// BACKEND: Sent as `duration_weeks` (int?). Derived from deadline in Step 2.
+  int? selectedWeeks;
+
+  /// BACKEND: Sent as `deadline` (String? ISO 8601) using `toIso8601String()`.
+  DateTime? selectedDeadline;
+
+  /// BACKEND: Sent as `current_weight` (double?).
+  double? selectedCurrentWeight;
+
+  /// BACKEND: Sent as `goal_weight` (double?).
+  double? selectedGoalWeight;
 
   /// Opens a dialog to select exercises for a given [category].
   ///
@@ -36,7 +66,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   ///
   /// When the dialog is closed, it updates the [planStates] with the new or
   /// modified exercise selections.
-  
+
   Future<void> savePlanToDatabase() async {
     if (planStates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,14 +76,14 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
     }
 
     // Determine URL based on platform (Same logic as your Sign-up)
-   String baseUrl; 
-  
+   String baseUrl;
+
  if (kIsWeb) {
-  baseUrl = 'http://localhost:3000/auth/save-plan'; // ✅ CORRECT
+  baseUrl = 'http://localhost:3000/auth/save-plan'; // 
 } else if (Platform.isAndroid) {
-  baseUrl = 'http://26.35.223.225:3000/auth/save-plan'; // ✅ CORRECT
+  baseUrl = 'http://10.0.2.2:3000/auth/save-plan'; // 
 } else {
-  baseUrl = 'http://localhost:3000/auth/save-plan'; // ✅ CORRECT
+  baseUrl = 'http://localhost:3000/auth/save-plan'; // 
 }
     // Map your planStates (UI) to the Database Schema
     final List<Map<String, dynamic>> exercisesJson = planStates.map((state) {
@@ -76,7 +106,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
     // --- THE FIX STARTS HERE ---
       // We create a special 'client' that is capable of sending cookies on Web
       var client = http.Client();
-      
+
       if (kIsWeb) {
         // This line tells the browser: "Attach the Session Cookie to this request"
         client = BrowserClient()..withCredentials = true;
@@ -86,7 +116,24 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         Uri.parse(baseUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
+          /// BACKEND: `/auth/save-plan` payload contract (nullable fields allowed)
+          ///
+          /// Required:
+          /// - `plan_name`: String
+          /// - `exercises`: List<Map>
+          ///
+          /// Optional (can be null due to checkboxes in Step 2):
+          /// - `goal`: String?
+          /// - `duration_weeks`: int?
+          /// - `deadline`: String? (ISO 8601)
+          /// - `current_weight`: double?
+          /// - `goal_weight`: double?
           "plan_name": "My Custom Workout",
+          "goal": selectedGoal,
+          "duration_weeks": selectedWeeks,
+          "deadline": selectedDeadline?.toIso8601String(),
+          "current_weight": selectedCurrentWeight,
+          "goal_weight": selectedGoalWeight,
           "exercises": exercisesJson,
         }),
       );
@@ -95,10 +142,30 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Plan saved to your account!")),
         );
-        // Go to Home Page after successful save
+        final name = PlanController.instance.generateNextPlanName();
+        final exercises = planStates
+            .map(
+              (s) => PlanExercise(
+                name: s.name,
+                duration: s.duration ?? Duration.zero,
+                days: s.days.toList(),
+              ),
+            )
+            .toList();
+        PlanController.instance.addNewPlan(
+          name: name,
+          goal: selectedGoal,
+          deadline: selectedDeadline,
+          durationWeeks: selectedWeeks,
+          currentWeight: selectedCurrentWeight,
+          goalWeight: selectedGoalWeight,
+          exercises: exercises,
+          setAsCurrent: true,
+        );
+        // Go to Main Shell after successful save
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
+          MaterialPageRoute(builder: (_) => const MainShell()),
         );
       } else {
         throw Exception("Server returned ${response.statusCode}");
@@ -237,7 +304,45 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
                   borderRadius: BorderRadius.circular(30.0),
                 ),
                 child: ElevatedButton(
-                  onPressed: () => savePlanToDatabase(),
+
+                  // waits for the plan completion to be saved
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PlanGoalScreen()),
+                    );
+                    if (result != null && result is Map) {
+                      setState(() {
+                        selectedGoal = result['goal'] as String?;
+                        final weeks = result['durationWeeks'];
+                        if (weeks is int) {
+                          selectedWeeks = weeks;
+                        } else {
+                          selectedWeeks = null;
+                        }
+                        final deadline = result['deadline'];
+                        if (deadline is DateTime) {
+                          selectedDeadline = deadline;
+                        } else {
+                          selectedDeadline = null;
+                        }
+                        final cw = result['currentWeight'];
+                        if (cw is num) {
+                          selectedCurrentWeight = cw.toDouble();
+                        } else {
+                          selectedCurrentWeight = null;
+                        }
+                        final gw = result['goalWeight'];
+                        if (gw is num) {
+                          selectedGoalWeight = gw.toDouble();
+                        } else {
+                          selectedGoalWeight = null;
+                        }
+                      });
+                    }
+                    await savePlanToDatabase();
+                  },
+
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 20.0),
                     backgroundColor: Colors.transparent,
@@ -261,4 +366,4 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
       ),
     );
   }
-} 
+}

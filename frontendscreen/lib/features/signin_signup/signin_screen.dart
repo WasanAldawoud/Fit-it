@@ -7,7 +7,7 @@
 import 'package:flutter/material.dart';
 import '../../app_styles/color_constants.dart';
 import '../../app_styles/custom_widgets.dart';
-import '../home_page/home_page.dart';
+import '../common/main_shell.dart';
 import 'signup_screen.dart';
 // ⚠️  to talk to the backend
 import 'package:flutter/foundation.dart'; // for kIsWeb
@@ -37,7 +37,7 @@ class _SigninScreenState extends State<SigninScreen> {
   if (kIsWeb) {
   baseUrl = 'http://localhost:3000/auth/signin'; // ✅ CORRECT
 } else if (Platform.isAndroid) {
-  baseUrl = 'http://26.35.223.225:3000/auth/signin'; // ✅ CORRECT
+  baseUrl = 'http://10.0.2.2:3000/auth/signin'; // ✅ CORRECT
 } else {
   baseUrl = 'http://localhost:3000/auth/signin'; // ✅ CORRECT
 }
@@ -63,7 +63,7 @@ class _SigninScreenState extends State<SigninScreen> {
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+        MaterialPageRoute(builder: (_) => const MainShell()),
       );
     } else {
       final errorData = jsonDecode(response.body);
@@ -217,3 +217,5 @@ class _SigninScreenState extends State<SigninScreen> {
     );
   }
 }
+
+
