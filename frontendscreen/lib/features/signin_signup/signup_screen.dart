@@ -82,7 +82,7 @@ class _SignupPageState extends State<SignupPage> {
   if (kIsWeb) {
   baseUrl = 'http://localhost:3000/auth/signup'; // ✅ CORRECT
 } else if (Platform.isAndroid) {
-  baseUrl = 'http://26.35.223.225:3000/auth/signup'; // ✅ CORRECT
+  baseUrl = 'http://10.0.2.2:3000/auth/signup'; // ✅ CORRECT
 } else {
   baseUrl = 'http://localhost:3000/auth/signup'; // ✅ CORRECT
 }
@@ -114,7 +114,7 @@ class _SignupPageState extends State<SignupPage> {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => choosing_screen()),
+          MaterialPageRoute(builder: (_) => ChoosingScreen()),
         );
       } else {
         // FAILURE: Show error from backend
