@@ -4,23 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1d2aabd9-d7ad-4575-9ecb-13c7b099a667" name="Changes" comment="Re-Arrangement matter">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/.env" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/choosing_screen/choosing_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/choosing_screen/choosing_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/home_page/home_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/home_page/home_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/create_plan_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/create_plan_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/signin_signup/signin_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/signin_signup/signin_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/signin_signup/signup_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/signin_signup/signup_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugin_registrant.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugins.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugin_registrant.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugins.cmake" afterDir="false" />
-    </list>
+    <list default="true" id="1d2aabd9-d7ad-4575-9ecb-13c7b099a667" name="Changes" comment="Re-Arrangement matter" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -30,11 +14,6 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_BRANCH_BY_REPOSITORY">
-      <map>
-        <entry key="$PROJECT_DIR$" value="main" />
-      </map>
-    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -49,9 +28,6 @@
     &quot;accountId&quot;: &quot;475cf8b9-e36e-4caa-8aa0-1d6ad70b36ff&quot;
   }
 }</component>
-  <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/create_plan_screen.dart" root0="FORCE_HIGHLIGHTING" />
-  </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -92,7 +68,7 @@
   </component>
   <component name="RunManager">
     <configuration name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter">
-      <option name="filePath" value="$PROJECT_DIR$/frontendscreen/lib/main.dart" />
+      <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />
       <method v="2" />
     </configuration>
   </component>
@@ -180,58 +156,11 @@
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
-    <option name="RECENT_FILTERS">
-      <map>
-        <entry key="Branch">
-          <value>
-            <list>
-              <RecentGroup>
-                <option name="FILTER_VALUES">
-                  <option value="LoaiSideFrontend" />
-                </option>
-              </RecentGroup>
-              <RecentGroup>
-                <option name="FILTER_VALUES">
-                  <option value="HEAD" />
-                </option>
-              </RecentGroup>
-              <RecentGroup>
-                <option name="FILTER_VALUES">
-                  <option value="origin/main" />
-                </option>
-              </RecentGroup>
-              <RecentGroup>
-                <option name="FILTER_VALUES">
-                  <option value="origin/LoaiSideFrontend" />
-                </option>
-              </RecentGroup>
-              <RecentGroup>
-                <option name="FILTER_VALUES">
-                  <option value="main" />
-                </option>
-              </RecentGroup>
-            </list>
-          </value>
-        </entry>
-      </map>
-    </option>
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="FILTERS">
-                <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="LoaiSideFrontend" />
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
-            </State>
+            <State />
           </value>
         </entry>
       </map>
