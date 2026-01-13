@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'color_constants.dart';
-
+ 
 /// حقل نصي قابل لإعادة الاستخدام
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -10,7 +10,10 @@ class CustomTextField extends StatelessWidget {
   final Function(String)? onChanged;
   final VoidCallback? toggleVisibility; // لتفعيل إظهار/إخفاء الباسورد
   final Key? fieldKey;
-
+  final bool readOnly;
+  final VoidCallback? onTap;
+  final TextInputType? keyboardType;
+ 
   const CustomTextField({
     required this.controller,
     required this.hintText,
@@ -19,9 +22,12 @@ class CustomTextField extends StatelessWidget {
     this.onChanged,
     this.toggleVisibility,
     this.fieldKey,
+    this.readOnly = false,
+    this.onTap,
+    this.keyboardType,
     super.key,
   });
-
+ 
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -29,6 +35,9 @@ class CustomTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       onChanged: onChanged,
+      readOnly: readOnly, 
+      onTap: onTap, 
+      keyboardType: keyboardType, 
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: ColorConstants.primaryColor),
         suffixIcon: toggleVisibility != null
@@ -48,7 +57,7 @@ class CustomTextField extends StatelessWidget {
     );
   }
 }
-
+ 
 /// زر قابل لإعادة الاستخدام
 class CustomButton extends StatelessWidget {
   final String title;
@@ -56,7 +65,7 @@ class CustomButton extends StatelessWidget {
   final Color backgroundColor;
   final bool isWhiteText;
   final Key? buttonKey;
-
+ 
   const CustomButton({
     required this.title,
     required this.onTap,
@@ -65,7 +74,7 @@ class CustomButton extends StatelessWidget {
     this.buttonKey,
     super.key,
   });
-
+ 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
@@ -89,3 +98,4 @@ class CustomButton extends StatelessWidget {
     );
   }
 }
+ 
