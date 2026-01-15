@@ -116,8 +116,8 @@ class _SigninScreenState extends State<SigninScreen> {
         Uri.parse(baseUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "username": usernameController.text,
-          "password": passwordController.text,
+          "username": usernameController.text.trim().toLowerCase(),
+          "password": passwordController.text.trim(),
         }),
       );
 
