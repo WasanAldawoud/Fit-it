@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
 import '../../app_styles/color_constants.dart';
 import '../common/plan_controller.dart';
 import '../common/main_shell.dart';
@@ -12,22 +14,22 @@ class MyPlansScreen extends StatefulWidget {
 }
 
 class _MyPlansScreenState extends State<MyPlansScreen> {
-
   String _formatDate(DateTime d) {
     final y = d.year.toString().padLeft(4, '0');
     final m = d.month.toString().padLeft(2, '0');
     final day = d.day.toString().padLeft(2, '0');
     return '$y-$m-$day';
   }
+  
 
-  @override
-  void initState() {
-    super.initState();
-    // Ensure at least one plan exists
-    if (PlanController.instance.plans.isEmpty) {
-      PlanController.instance.addNewPlan();
-    }
-  }
+ @override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await PlanController.instance.fetchAllPlans();
+  });
+}
+
 
   Future<void> _addNewPlanFlow() async {
     // Go to choosing flow first
@@ -35,13 +37,16 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
       context,
       MaterialPageRoute(builder: (_) => const ChoosingScreen()),
     );
-    // After returning, create the plan with the first available name and set as current
+
+    // After returning, create the plan locally
     final plan = PlanController.instance.addNewPlan(setAsCurrent: true);
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${plan.name} created and set as current')),
     );
-    // Navigate to Home (MainShell default index = Home)
-    if (!mounted) return;
+
+    // Navigate to MainShell (Home)
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const MainShell()),
@@ -66,7 +71,9 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, controller.text.trim()),
-              style: ElevatedButton.styleFrom(backgroundColor: ColorConstants.primaryColor),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorConstants.primaryColor,
+              ),
               child: const Text('Save'),
             ),
           ],
@@ -75,7 +82,6 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
     );
 
     if (newName != null && newName.isNotEmpty) {
-      // If name exists, auto-increment until unique
       String candidate = newName;
       int i = 2;
       final list = PlanController.instance.plans;
@@ -86,107 +92,132 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
       setState(() {
         plan.name = candidate;
       });
+      // Note: You may want to add a backend PUT request here to update the plan name in DB
     }
   }
 
   void _selectDefault(Plan plan) {
+    // 1. Update the controller state
     PlanController.instance.setCurrentPlan(plan);
+    
+    // 2. Show feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${plan.name} set as current plan')),
     );
-    // Navigate to Home (MainShell default index = Home)
-    Navigator.pushReplacement(
+    
+    // 3. Navigate back to the MainShell (where HomePage/Progress is)
+    // pushAndRemoveUntil ensures the user can't "Go Back" to the plan list incorrectly
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const MainShell()),
+      (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('My Plans', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.black87),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add, color: ColorConstants.primaryColor),
-            onPressed: _addNewPlanFlow,
-          ),
-        ],
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemBuilder: (context, index) {
-          final plan = PlanController.instance.plans[index];
-          final isDefault = PlanController.instance.currentPlan.value == plan;
-          return InkWell(
-            onTap: () => _selectDefault(plan),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+    // Listen to changes in the current plan to update UI markers (like the 'Default' chip)
+    return ValueListenableBuilder<Plan?>(
+      valueListenable: PlanController.instance.currentPlan,
+      builder: (context, currentPlan, _) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            title: const Text(
+              'My Plans',
+              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+            ),
+            iconTheme: const IconThemeData(color: Colors.black87),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.add, color: ColorConstants.primaryColor),
+                onPressed: _addNewPlanFlow,
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: ColorConstants.primaryColor.withOpacity(0.1),
-                    child: Icon(Icons.fitness_center, color: ColorConstants.primaryColor),
+            ],
+          ),
+          body: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: PlanController.instance.plans.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final plan = PlanController.instance.plans[index];
+              final isDefault = currentPlan == plan;
+
+              return InkWell(
+                onTap: () => _selectDefault(plan),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: ColorConstants.primaryColor.withOpacity(0.1),
+                        child: Icon(Icons.fitness_center, color: ColorConstants.primaryColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                plan.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                            ),
-                            if (isDefault)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: ColorConstants.accentColor,
-                                  borderRadius: BorderRadius.circular(20),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    plan.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                                 ),
-                                child: const Text('Default', style: TextStyle(color: Colors.white, fontSize: 12)),
-                              ),
+                                if (isDefault)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: ColorConstants.accentColor,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      'Default',
+                                      style: TextStyle(color: Colors.white, fontSize: 12),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Goal: ${plan.goal ?? '—'} • Deadline: ${plan.deadline == null ? '—' : _formatDate(plan.deadline!)} • ~${plan.durationWeeks ?? '—'}w',
+                              style: const TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Goal: ${plan.goal ?? '—'}  •  Deadline: ${plan.deadline == null ? '—' : _formatDate(plan.deadline!)}  •  ~${plan.durationWeeks ?? '—'}w',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _renamePlan(plan),
+                      )
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _renamePlan(plan),
-                  )
-                ],
-              ),
-            ),
-          );
-        },
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemCount: PlanController.instance.plans.length,
-      ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
-

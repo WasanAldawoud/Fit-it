@@ -3,14 +3,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
+import 'dart:convert';// 🔹 Added for jsonDecode
+import 'dart:io';// 🔹 Added for Platform.isAndroid
 import 'package:http/http.dart' as http;
 import 'package:http/browser_client.dart';
 import 'features/signin_signup/signin_screen.dart';
-//import 'features/plan_creation/presentation/screens/create_plan_screen.dart';// Import the CreatePlanScreen for tests
-//import 'features/common/main_shell.dart'; //Import the CreatePlanScreen for tests
-
-import 'features/home_page/home_page.dart';
+import 'features/common/main_shell.dart';
+import 'features/common/plan_controller.dart'; // 🔹 Added to access syncFromBackend
 
 void main() {
   runApp(const MyApp());
@@ -50,11 +49,33 @@ class _MyAppState extends State<MyApp> {
       );
 
       if (response.statusCode == 200) {
-        // Session valid! User is already logged in via Google/Local
+        // 1. Session is valid! Now determine the URL to fetch the workout plan
+        String fetchUrl;
+        if (kIsWeb) {
+          fetchUrl = 'http://localhost:3000/auth/get-plan';
+        } else if (Platform.isAndroid) {
+          // Use your specific IP if on a real device, or 10.0.2.2 for emulator
+          fetchUrl = 'http://10.0.2.2:3000/auth/get-plan'; 
+        } else {
+          fetchUrl = 'http://localhost:3000/auth/get-plan';
+        }
+
+        // 2. Fetch the plan data
+        final fetchRes = await client.get(Uri.parse(fetchUrl));
+
+        if (fetchRes.statusCode == 200) {
+          final data = jsonDecode(fetchRes.body);
+          if (data['plan'] != null) {
+            // 3. Populate the PlanController so HomePage has data
+            PlanController.instance.syncFromBackend(data['plan']);
+          }
+        }
+
+        // 4. Move to MainShell (which contains the Bottom Navbar)
         setState(() {
-          _initialScreen = const HomePage();
+          _initialScreen = const MainShell();
         });
-      } else {
+      }else {
         // No session found
         setState(() {
           _initialScreen = const SigninScreen();

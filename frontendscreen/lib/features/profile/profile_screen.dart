@@ -1,14 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:frontendscreen/features/home_page/home_page.dart';
-import 'package:frontendscreen/features/plan_creation/presentation/screens/create_plan_screen.dart';
+import 'package:frontendscreen/features/signin_signup/signin_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:frontendscreen/app_styles/color_constants.dart';
-
 import 'dart:convert'; // Used to turn JSON from the server into Dart Maps
 import 'package:http/http.dart' as http; // Main library for API calls
 import 'package:http/browser_client.dart'; // Handles Cookies for Web (Passport.js support)
 import 'package:flutter/foundation.dart'; // Used for kIsWeb checks
+import '../common/plan_controller.dart'; // 🔹 ADDED: To sync weight updates with the Home Page
 
 /// A screen that manages the user's profile data by communicating with the Node.js backend.
 class ProfileScreen extends StatefulWidget {
@@ -75,9 +74,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Helper to get the correct Base URL based on whether you are on Web, Emulator, or Device.
   String _getBaseUrl() {
-    if (kIsWeb) return 'http://localhost:3000/auth/profile';
-    if (Platform.isAndroid) return 'http://26.35.223.225:3000/auth/profile';
-    return 'http://10.0.2.2:3000/auth/profile';
+    if (kIsWeb) {
+    return 'http://localhost:3000/auth/profile'; // Option 1: Web
+  }else if (Platform.isAndroid){
+    return 'http://10.0.2.2:3000/auth/profile'; // 🔹 Standardized Emulator IP
+  }else{
+   return 'http://26.35.223.225:3000/auth/profile'; // Option 3: Physical Device
+  }
+    
   }
 
   /// GET Request: Downloads user data from the Node.js /profile route.
@@ -135,20 +139,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       var client = http.Client();
       if (kIsWeb) client = BrowserClient()..withCredentials = true;
 
+      final double newWeight = double.tryParse(_weightController.text) ?? 0;
+
       // Send the updated data as a JSON body to the backend
       final response = await client.put(
         Uri.parse(_getBaseUrl()), 
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "username": _nameController.text,
-          "gender": gender,
+          "gender": gender?.toLowerCase(), // 🔹 Lowercase to match DB check constraint
           "birthdate": birthDate?.toIso8601String(), // Send dates in ISO format
-          "weight": double.tryParse(_weightController.text) ?? 0,
+          "weight": newWeight,
           "height": double.tryParse(_heightController.text) ?? 0,
         }),
       );
 
       if (response.statusCode == 200) {
+        // 🔹 SYNC LOGIC: Update the weight in your PlanController so the Home Page updates
+        if (PlanController.instance.currentPlan.value != null) {
+          PlanController.instance.currentPlan.value!.currentWeight = newWeight;
+          PlanController.instance.notifyCurrentPlanChanged();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Profile updated successfully!')),
         );
@@ -166,6 +178,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ==========================================
   // UI COMPONENTS
   // ==========================================
+
+  Future<void> handleLogout() async {
+  String base;
+  if (kIsWeb) {
+    base = 'http://localhost:3000';
+  } else {
+    // 🔹 USE YOUR LAPTOP IP HERE FOR PHYSICAL DEVICE
+    // 🔹 USE 10.0.2.2 FOR EMULATOR
+    base = 'http://26.35.223.225:3000'; 
+  }
+
+  final String logoutUrl = '$base/auth/logout';
+  debugPrint("Attempting logout at: $logoutUrl"); 
+
+  try {
+    var client = http.Client();
+    if (kIsWeb) client = BrowserClient()..withCredentials = true;
+
+    // We set a timeout so the UI doesn't freeze if the network is slow
+    final response = await client.get(Uri.parse(logoutUrl)).timeout(const Duration(seconds: 5));
+
+    // Move to SigninScreen regardless of the status code to ensure the user isn't stuck
+    _navigateToSignin();
+  } catch (e) {
+    debugPrint("Logout Network Error: $e");
+    _navigateToSignin(); // 🔹 Force navigation even if the server is offline
+  }
+}
+
+void _navigateToSignin() {
+  if (!mounted) return;
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (context) => const SigninScreen()),
+    (route) => false,
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -200,14 +249,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _birthDateSection(),
           _heightWeightSection(),
           const Divider(),
-          _actionTile(Icons.home, 'Home Page', () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const HomePage()));
-          }),
-          _actionTile(Icons.star, 'Your Plan', () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePlanScreen()));
-          }),
+          // 🔹 CLEANED NAVIGATION: Removed direct Home Page links as they are now in the Bottom Bar
           _actionTile(Icons.help_outline, 'Get Help', () => _showSimpleDialog('git')),
           _actionTile(Icons.info_outline, 'About App', () => _showSimpleDialog('about')),
+          _actionTile(Icons.logout, 'Log Out',() => handleLogout()),
         ],
       ),
     );
@@ -312,8 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _toggleEdit() {
     if (isEditing) {
-      // If we are currently in editing mode and click Save, call the PUT request
-      updateUserProfile();
+      updateUserProfile(); // PUT request when clicking Save
     }
     setState(() => isEditing = !isEditing);
   }

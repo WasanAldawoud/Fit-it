@@ -6,7 +6,7 @@ import { signUp, signIn, getProfile, googleCallback, updateProfile } from '../co
 // Imports the logic functions from your Auth Controller.
 // These functions handle account creation, login, and profile management.
 
-import { saveUserPlan } from '../controllers/authPlan.js';
+import { saveUserPlan, getAllUserPlans, markExerciseComplete } from '../controllers/authPlan.js';
 // Imports the specific function designed to save workout plans.
 // Keeping this in a separate file helps keep your code organized as the app grows.
 
@@ -62,7 +62,12 @@ router.get('/google/callback',
   // After the user logs in on Google's site, Google sends them back to this specific URL.
   // If the login fails (e.g., the user cancels), they are redirected back to the sign-in page.
   // If it succeeds, the 'googleCallback' function runs to send the user back to your Flutter app.
+  
 
+
+router.get("/get-plan", getAllUserPlans);
+
+router.post("/mark-exercise-complete", markExerciseComplete);
 export default router;
 // Exports the router so it can be imported in your main 'index.js' or 'app.js' file.
 // Usually, you would use it there like this: app.use('/auth', authRoutes);

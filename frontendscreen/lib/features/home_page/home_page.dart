@@ -1,5 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
+
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/browser_client.dart';
+
 import '../../app_styles/color_constants.dart';
 import '../common/plan_controller.dart';
 
@@ -14,7 +21,6 @@ class _HomePageState extends State<HomePage> {
   Timer? _countdownTimer;
   bool _isRunning = false;
   PlanExercise? _activeExercise;
-  bool _weightPromptShown = false;
 
   void _startOrPauseExercise(PlanExercise exercise) {
     if (_activeExercise == exercise && _isRunning) {
@@ -29,22 +35,93 @@ class _HomePageState extends State<HomePage> {
       _isRunning = true;
     });
 
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       final plan = PlanController.instance.currentPlan.value;
-      if (plan == null) return;
-      if (_activeExercise == null) return;
+      if (plan == null || _activeExercise == null) return;
 
       final remaining = _activeExercise!.remainingDuration;
       if (remaining.inSeconds <= 0) {
         _countdownTimer?.cancel();
         setState(() => _isRunning = false);
+
+        // SYNC COMPLETION TO BACKEND
+        if (plan.id != null) {
+          await _recordCompletionInBackend(plan.id!, _activeExercise!.name);
+        }
+
+        // AUTO-PROGRESS: Automatically move to next exercise
+        _moveToNextExercise(plan);
         return;
       }
 
-      _activeExercise!.remainingDuration = Duration(seconds: remaining.inSeconds - 1);
+      setState(() {
+        _activeExercise!.remainingDuration = Duration(seconds: remaining.inSeconds - 1);
+      });
       PlanController.instance.notifyCurrentPlanChanged();
     });
   }
+
+  void _moveToNextExercise(Plan plan) {
+    final currentIndex = plan.exercises.indexOf(_activeExercise!);
+    if (currentIndex != -1 && currentIndex < plan.exercises.length - 1) {
+      setState(() {
+        _activeExercise = plan.exercises[currentIndex + 1];
+        _isRunning = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Next: ${_activeExercise!.name}"),
+          backgroundColor: ColorConstants.accentColor,
+        ),
+      );
+    }
+  }
+
+  Future<void> _recordCompletionInBackend(
+  int planId,
+  String exerciseName,
+) async {
+  // MUST match the router.post("/mark-exercise-complete", ...) in authRoutes.js
+  String baseUrl;
+
+if (kIsWeb) {
+  // Option 1: Web Browser
+  baseUrl = 'http://localhost:3000';
+} else {
+  // Option 2 & 3: Mobile (Check manually for now or use a constant)
+  // Use 10.0.2.2 for Emulator or your IP 26.35.223.225 for Physical Device
+  baseUrl = 'http://26.35.223.225:3000'; 
+}
+ final String url = '$baseUrl/auth/mark-exercise-complete';
+
+  try {
+    http.Client client = http.Client();
+    if (kIsWeb) client = BrowserClient()..withCredentials = true;
+
+    final response = await client.post(
+      Uri.parse(url.trim()),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "plan_id": planId,
+        "exercise_name": exerciseName,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final plan = PlanController.instance.currentPlan.value;
+      if (plan != null) {
+        setState(() {
+          plan.completedToday += 1;
+        });
+        PlanController.instance.notifyCurrentPlanChanged();
+      }
+    }
+    client.close();
+  } catch (e) {
+    debugPrint("❌ Sync failed: $e");
+  }
+}
+
 
   void _resetActiveExercise() {
     if (_activeExercise == null) return;
@@ -65,190 +142,97 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
+      backgroundColor: ColorConstants.primaryColor, // 0xFF146E82
+      body: SafeArea(
+        child: ValueListenableBuilder<Plan?>(
+          valueListenable: PlanController.instance.currentPlan,
+          builder: (context, plan, _) {
+            double progressValue = (plan == null || plan.totalExercises == 0)
+                ? 0
+                : plan.completedToday / plan.totalExercises;
 
-
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/pic/background.jpg"),
-                fit: BoxFit.cover, // Ensures the image fills the space
-              ),
-            ),
-          ),
-
-
-          // Positioned.fill(
-          //   child: Image.asset('assets/pic/background.jpg', fit: BoxFit.fill),
-          // ),
-
-
-          SafeArea(
-            child: ValueListenableBuilder<Plan?>(
-              valueListenable: PlanController.instance.currentPlan,
-              builder: (context, plan, _) {
-                if (plan != null) {
-                  final last = plan.weightLog.isEmpty ? null : plan.weightLog.last;
-                  final due = last == null || DateTime.now().difference(last.date).inDays >= 7;
-                  if (due && !_weightPromptShown) {
-                    _weightPromptShown = true;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) _promptWeight(plan);
-                    });
-                  }
-                }
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 16),
-                      if (plan == null)
-                        _buildNoPlanCard()
-                      else
-                        _buildPlanSummaryCard(plan),
-                      const SizedBox(height: 16),
-                      _buildTrackerCard(),
-                      const SizedBox(height: 16),
-                      if (plan != null) _buildWeeklyCheckInCard(plan),
-                      const SizedBox(height: 16),
-                      if (plan != null)
-                        if (plan.exercises.isEmpty)
-                          _buildNoExercisesCard()
-                        else
-                          ...plan.exercises.map(_buildExerciseCard),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: const [
-        Text(
-          'Home',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white70,
-          ),
-        ),
-        Icon(Icons.calendar_today_outlined, color: Colors.black87),
-      ],
-    );
-  }
-
-  Widget _buildPlanSummaryCard(Plan plan) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ColorConstants.primaryColor.withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.favorite, color: ColorConstants.primaryColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            return Column(
               children: [
-                Text(plan.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(
-                  'Goal: ${plan.goal ?? '—'}  •  Deadline: ${plan.deadline == null ? '—' : _formatDate(plan.deadline!)}',
-                  style: const TextStyle(color: Colors.black54),
+                // --- TOP SECTION: DOMINANT PROGRESS HERO (BIGGEST ELEMENT) ---
+                _buildHeroProgress(progressValue, plan),
+
+                // --- BOTTOM SECTION: SCROLLABLE TRACKER & LIST ---
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // SLIM TRACKER CARD (NOW SMALLER)
+                        _buildTrackerCard(),
+
+                        const SizedBox(height: 25),
+                        const Text(
+                          "Today's Exercises",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (plan != null) ...plan.exercises.map((ex) => _buildExerciseCard(ex)),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Time left: ${plan.durationWeeks == null ? '—' : '${plan.durationWeeks} weeks'}',
-                    style: const TextStyle(color: Colors.black54)),
               ],
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildNoPlanCard() {
+  Widget _buildHeroProgress(double progress, Plan? plan) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+      padding: const EdgeInsets.only(top: 20, bottom: 30),
+      child: Column(
+        children: [
+          const Text(
+            'Workout Progress',
+            style: TextStyle(fontSize: 18, color: Colors.white70, fontWeight: FontWeight.w500),
           ),
-        ],
-      ),
-      child: Row(
-        children: const [
-          Icon(Icons.info_outline, color: Colors.black87),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text('No plan selected. Go to Plans tab to choose or create a plan.',
-                style: TextStyle(color: Colors.black87)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoExercisesCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: const [
-          Icon(Icons.fitness_center, color: Colors.black87),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'This plan has no workouts yet. Create a plan to see workouts here.',
-              style: TextStyle(color: Colors.black87),
-            ),
+          const SizedBox(height: 25),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Extra large progress ring
+              SizedBox(
+                width: 250,
+                height: 250,
+                child: CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 18,
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  color: ColorConstants.accentColor, // Orange
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "${(progress * 100).toInt()}%",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 60,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "${plan?.completedToday ?? 0}/${plan?.totalExercises ?? 0} Exercises",
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -256,226 +240,97 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTrackerCard() {
-    String fmt(Duration d) {
-      final h = d.inHours;
-      final m = d.inMinutes.remainder(60);
-      final s = d.inSeconds.remainder(60);
-      final parts = <String>[];
-      if (h > 0) parts.add('$h hour${h == 1 ? '' : 's'}');
-      if (m > 0 || h > 0) parts.add('$m minute${m == 1 ? '' : 's'}');
-      parts.add('$s second${s == 1 ? '' : 's'}');
-      return parts.join(' ');
-    }
-
-    final title = _activeExercise?.name ?? 'Select an exercise';
-    final remaining = _activeExercise?.remainingDuration ?? Duration.zero;
-
+    String fmt(Duration d) => "${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}";
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: ColorConstants.primaryColor.withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.timer_outlined, color: ColorConstants.primaryColor),
-          ),
-          const SizedBox(width: 12),
           Expanded(
+            flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Workout Tracker', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
                 Text(
-                  title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  _activeExercise?.name ?? 'Select Exercise',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: ColorConstants.primaryColor,
+                  ),
                 ),
-                const SizedBox(height: 6),
                 Text(
-                  fmt(remaining),
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                  fmt(_activeExercise?.remainingDuration ?? Duration.zero),
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                  ),
                 ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: _activeExercise == null ? null : () => _startOrPauseExercise(_activeExercise!),
-            child: Text(_isRunning ? 'Pause' : 'Start', style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 10),
+          // COMPACT START/PAUSE
+          _buildSmallControlButton(
+            icon: _isRunning ? Icons.pause : Icons.play_arrow,
+            color: ColorConstants.primaryColor,
+            onTap: _activeExercise == null ? null : () => _startOrPauseExercise(_activeExercise!),
           ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: _activeExercise == null ? null : _resetActiveExercise,
-            child: const Text('Reset', style: TextStyle(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeeklyCheckInCard(Plan plan) {
-    final last = plan.weightLog.isEmpty ? null : plan.weightLog.last;
-    final due = last == null || DateTime.now().difference(last.date).inDays >= 7;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(due ? Icons.notifications_active_outlined : Icons.notifications_none_outlined,
-              color: Colors.black87),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Weekly Check-in', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(
-                  last == null ? 'No weight logged yet.' : 'Last: ${last.weight} kg • ${_formatDate(last.date)}',
-                  style: const TextStyle(color: Colors.black54),
-                ),
-              ],
-            ),
+          // COMPACT RESET
+          _buildSmallControlButton(
+            icon: Icons.refresh,
+            color: Colors.grey.shade400,
+            onTap: _activeExercise == null ? null : _resetActiveExercise,
           ),
-          TextButton(
-            onPressed: () => _promptWeight(plan),
-            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w600)),
-          )
         ],
       ),
     );
   }
 
-  Future<void> _promptWeight(Plan plan) async {
-    final controller = TextEditingController();
-    final value = await showDialog<double>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Weekly Check-in'),
-          content: TextField(
-            controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(hintText: 'Enter your weight (kg)'),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                final text = controller.text.trim();
-                final parsed = double.tryParse(text);
-                Navigator.pop(context, parsed);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: ColorConstants.primaryColor),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+  Widget _buildSmallControlButton({required IconData icon, required Color color, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: onTap == null ? Colors.grey.shade200 : color.withOpacity(0.15),
+        ),
+        child: Icon(icon, color: onTap == null ? Colors.grey : color, size: 24),
+      ),
     );
-
-    if (value == null) return;
-    plan.weightLog.add(WeightEntry(date: DateTime.now(), weight: value));
-    plan.currentWeight = value;
-    PlanController.instance.notifyCurrentPlanChanged();
-  }
-
-  String _formatDate(DateTime d) {
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
   }
 
   Widget _buildExerciseCard(PlanExercise a) {
-    String fmt(Duration d) {
-      final m = d.inMinutes;
-      final s = d.inSeconds.remainder(60);
-      return '${m}m ${s}s';
-    }
-
-
-
-    return Container(
+    bool isActive = _activeExercise == a;
+    bool isCompleted = a.remainingDuration.inSeconds <= 0;
+    return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          )
-        ],
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: isActive ? const BorderSide(color: ColorConstants.accentColor, width: 2) : BorderSide.none,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ColorConstants.primaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.fitness_center, color: ColorConstants.primaryColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(a.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(
-                  '${fmt(a.remainingDuration)} / ${fmt(a.duration)}${a.days.isEmpty ? '' : '  •  ${a.days.join(', ')}'}',
-                  style: const TextStyle(color: Colors.black54),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: ElevatedButton(
-                    onPressed: () => _startOrPauseExercise(a),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ColorConstants.primaryColor,
-                      foregroundColor: ColorConstants.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text(_activeExercise == a && _isRunning ? 'Pause Workout' : 'Start Workout'),
-                  ),
-                )
-              ],
-            ),
-          ),
-        ],
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        leading: Icon(
+          isCompleted ? Icons.check_circle : Icons.radio_button_off,
+          color: isCompleted ? Colors.green : ColorConstants.primaryColor,
+          size: 24,
+        ),
+        title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        subtitle: Text("${a.duration.inMinutes} min", style: const TextStyle(fontSize: 12)),
+        onTap: () => _startOrPauseExercise(a),
       ),
     );
   }

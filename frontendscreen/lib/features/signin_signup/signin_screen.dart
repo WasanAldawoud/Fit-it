@@ -17,7 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'dart:async'; 
 import 'package:uni_links/uni_links.dart'; 
-import '../home_page/home_page.dart';
+
 
 // 🔹 Required for Web redirection logic
 // This allows the app to refresh the browser tab to the backend URL
@@ -83,7 +83,7 @@ class _SigninScreenState extends State<SigninScreen> {
     // Remove the login screen from the stack and go to Home
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
+      MaterialPageRoute(builder: (_) => const MainShell()),
     );
   }
 
@@ -116,8 +116,8 @@ class _SigninScreenState extends State<SigninScreen> {
         Uri.parse(baseUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "username": usernameController.text,
-          "password": passwordController.text,
+          "username": usernameController.text.trim().toLowerCase(),
+          "password": passwordController.text.trim(),
         }),
       );
 

@@ -27,7 +27,11 @@ const PgSession = pgSimple(session);
 //Allows the server to accept requests from different origins (like Flutter app running on a different port/IP)
 // 2. Configure it properly
 app.use(cors({
-  origin: 'http://localhost:5000', // 🔹 EXACT port of your Flutter Web
+  origin: [
+    'http://localhost:5000', 
+    'http://127.0.0.1:5000',
+    'http://26.35.223.225:5000' // Your Specific IP
+  ], // 🔹 EXACT port of your Flutter Web
   credentials: true,               // 🔹 Allows cookies to be stored
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

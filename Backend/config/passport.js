@@ -106,7 +106,7 @@ passport.use(
         console.log("🔹 STEP 3: Attempting login for username:", username);
         // Debug log to track which user is attempting a login.
 
-        const result = await db.query("SELECT * FROM users WHERE username = $1", [username]); 
+        const result = await db.query("SELECT * FROM users WHERE LOWER(username) = LOWER($1)", [username]); 
         // Queries the DB to see if the username provided exists.
 
         if (result.rows.length > 0) {
