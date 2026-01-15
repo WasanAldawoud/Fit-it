@@ -71,3 +71,6 @@ ALTER TABLE exercise_completions ADD COLUMN IF NOT EXISTS exercise_id INTEGER RE
 
 --عشاني عملت القوقل اذا بدكم تشوفةا نسختخا كويب حطوا هاي flutter run -d chrome --web-port 5000
 --علي اوعك ثم اوعك تعدل بس ضيف ضيف علآ الاكواد ولا تغير التصميم بالغلط
+--update the table users
+ALTER TABLE users 
+DROP CONSTRAINT users_gender_check;
