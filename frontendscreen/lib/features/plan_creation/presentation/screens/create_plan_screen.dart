@@ -78,6 +78,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   /// Sends the created plan to the Node.js backend.
   Future<void> savePlanToDatabase() async {
     // 1. Client-side Validation
+    // 1. Client-side Validation
     if (planStates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select at least one exercise")),
@@ -99,7 +100,14 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
 
     // 3. Data Transformation (Mapping UI to DB Schema)
     // We convert the 'planStates' list into a List of Maps that match the Node.js 'req.body'
+    // 2. Dynamic URL Logic
+    // Different platforms require different addresses to reach 'localhost'
+    
+
+    // 3. Data Transformation (Mapping UI to DB Schema)
+    // We convert the 'planStates' list into a List of Maps that match the Node.js 'req.body'
     final List<Map<String, dynamic>> exercisesJson = planStates.map((state) {
+      // Find the category name for the current exercise
       // Find the category name for the current exercise
       final categoryName = categories.firstWhere(
         (cat) => cat.exercises.contains(state.name),
@@ -110,7 +118,10 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         "category": categoryName,
         "name": state.name,
         // Convert Duration object to a string like "10m 0s" for the database TEXT column
+        // Convert Duration object to a string like "10m 0s" for the database TEXT column
         "duration": "${state.duration!.inMinutes}m ${state.duration!.inSeconds % 60}s",
+        // Convert the 'Set' of days to a 'List' so PostgreSQL can save it as an ARRAY
+        "days": state.days.toList(), 
         // Convert the 'Set' of days to a 'List' so PostgreSQL can save it as an ARRAY
         "days": state.days.toList(), 
       };
@@ -118,14 +129,18 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
 
     try {
       // 4. Client Setup (Handling Cookies/Sessions)
+      // 4. Client Setup (Handling Cookies/Sessions)
       var client = http.Client();
 
       if (kIsWeb) {
         // IMPORTANT: BrowserClient with 'withCredentials = true' ensures that
         // the Passport.js session cookie (connect.sid) is sent with the request.
+        // IMPORTANT: BrowserClient with 'withCredentials = true' ensures that
+        // the Passport.js session cookie (connect.sid) is sent with the request.
         client = BrowserClient()..withCredentials = true;
       }
 
+      // 5. Execution of the POST Request
       // 5. Execution of the POST Request
       final response = await client.post(
         Uri.parse(baseUrl),
@@ -154,7 +169,10 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
       );
 
       // 6. Response Handling
+
+      // 6. Response Handling
       if (response.statusCode == 201) {
+        // 201 Created means the backend 'COMMIT' was successful.
         // 201 Created means the backend 'COMMIT' was successful.
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -187,9 +205,11 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         );
       } else {
         // If statusCode is 401 (Unauthorized) or 500 (Server Error)
+        // If statusCode is 401 (Unauthorized) or 500 (Server Error)
         throw Exception("Server returned ${response.statusCode}");
       }
     } catch (e) {
+      // Catch network timeouts or connection refused errors
       // Catch network timeouts or connection refused errors
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to save plan: $e")),
@@ -201,7 +221,12 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   // UI LOGIC (Dialogs and Categories)
   // --------------------------------------------------------------------------
 
-  void makePlanDialog(ExerciseCategory category) async {
+
+  // --------------------------------------------------------------------------
+  // UI LOGIC (Dialogs and Categories)
+  // --------------------------------------------------------------------------
+
+   void makePlanDialog(ExerciseCategory category) async {
     final existing = planStates
         .where((plan) => category.exercises.contains(plan.name))
         .toList();
@@ -229,6 +254,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
     }
   }
 
+
   final List<ExerciseCategory> categories = [
     ExerciseCategory(
         name: 'Cardio',
@@ -255,6 +281,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         icons: ['assets/icons/pilates3.svg', 'assets/icons/pilates2.svg'],
         exercises: ['Pelvic Curl', 'Chest Lift', 'Chest Lift with Rotation', 'Spine Twist Supine', 'Single Leg Stretch', 'Roll Up', 'Roll-Like-a-Ball', 'Leg Circles']),
   ];
+
 
   final Set<String> selectedCategories = {};
 
@@ -301,6 +328,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
                       category: category,
                       isSelected: isSelected,
                       onTap: () => makePlanDialog(category),
+            
                     );
                   },
                 ),

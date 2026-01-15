@@ -17,7 +17,12 @@ import passport from 'passport';
 const router = express.Router();
 // Initializes a new Router instance.
 // This allows you to group these routes under a prefix (like '/auth') in your main server file.
+// Initializes a new Router instance.
+// This allows you to group these routes under a prefix (like '/auth') in your main server file.
 
+// ==========================================
+// STANDARD AUTHENTICATION ROUTES
+// ==========================================
 // ==========================================
 // STANDARD AUTHENTICATION ROUTES
 // ==========================================
@@ -25,8 +30,12 @@ const router = express.Router();
 router.post('/signup', signUp);
 // Listens for POST requests to your-api.com/signup.
 // It passes the user's registration data (email, password, etc.) to the 'signUp' function.
+// Listens for POST requests to your-api.com/signup.
+// It passes the user's registration data (email, password, etc.) to the 'signUp' function.
 
 router.post('/signin', signIn);
+// Listens for POST requests to your-api.com/signin.
+// Used when the user types their credentials into the Flutter login screen.
 // Listens for POST requests to your-api.com/signin.
 // Used when the user types their credentials into the Flutter login screen.
 
@@ -69,5 +78,7 @@ router.get("/get-plan", getAllUserPlans);
 
 router.post("/mark-exercise-complete", markExerciseComplete);
 export default router;
+// Exports the router so it can be imported in your main 'index.js' or 'app.js' file.
+// Usually, you would use it there like this: app.use('/auth', authRoutes);
 // Exports the router so it can be imported in your main 'index.js' or 'app.js' file.
 // Usually, you would use it there like this: app.use('/auth', authRoutes);
