@@ -183,3 +183,4 @@ export const googleCallback = (req, res) => {
   `);
   // This HTML is a "bridge." It detects the device type and sends the user to the right place.
 };
+
