@@ -96,13 +96,13 @@ class _SignupPageState extends State<SignupPage> {
     String baseUrl;
     // We must use different IPs depending on the device running the app
     if (kIsWeb) {
-      baseUrl = 'http://localhost:3000/auth/signup'; 
+      baseUrl = 'http://localhost:3000/auth/signup';
     } else if (Platform.isAndroid) {
       // 26.35.223.225 is your computer's specific IP on the local network
-      baseUrl = 'http://26.35.223.225:3000/auth/signup'; 
+      baseUrl = 'http://26.35.223.225:3000/auth/signup';
     } else {
       // 10.0.2.2 is the special gateway for the Android Emulator to see 'localhost'
-      baseUrl = 'http://10.0.2.2:3000/auth/signup'; 
+      baseUrl = 'http://10.0.2.2:3000/auth/signup';
     }
 
     try {
@@ -436,6 +436,4 @@ class _SignupPageState extends State<SignupPage> {
       ),
     );
   }
-}
-
 }

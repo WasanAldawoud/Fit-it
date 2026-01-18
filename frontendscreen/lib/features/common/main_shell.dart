@@ -3,6 +3,7 @@ import '../home_page/home_page.dart';
 import '../my_plans/my_plans_screen.dart';
 import '../common/app_nav_bar.dart';
 import '../profile/profile_screen.dart'; // Import is already here
+import '../Ai_chat/chat_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -20,7 +21,7 @@ class _MainShellState extends State<MainShell> {
     final pages = <Widget>[
       const HomePage(),          // Index 0
       const MyPlansScreen(),     // Index 1
-      const _AiChatPlaceholder(), // Index 2
+      const ChatScreen(),        // Index 2
       const ProfileScreen(),     // Index 3 (Matches 'Profile' in AppNavBar)
     ];
 
@@ -39,16 +40,4 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-class _AiChatPlaceholder extends StatelessWidget {
-  const _AiChatPlaceholder();
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Text(' AI Chat\n\nHI WASAN', style: TextStyle(fontSize: 18)),
-        ),
-      ),
-    );
-  }
-}
+

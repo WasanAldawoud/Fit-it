@@ -145,46 +145,50 @@ passport.use(
     }
   )
 );
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID, // Your app's unique ID from Google Cloud Console.
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET, // Your secret key to prove it's your app.
-      callbackURL: "/auth/google/callback", // Where Google sends the user after they click "Allow".
-      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo", // The endpoint used to fetch user details.
-    },
-    async (accessToken, refreshToken, profile, cb) => {
-      // This function runs after the user logs into Google successfully.
-      // 'profile' contains the user's Google name, email, and ID.
-      try {
-        const email = profile.emails[0].value; // Extracts the primary email.
-        const username = profile.displayName; // Extracts the user's full name.
-        const googleId = profile.id; // Extracts the unique, permanent Google ID.
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID, // Your app's unique ID from Google Cloud Console.
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET, // Your secret key to prove it's your app.
+        callbackURL: "/auth/google/callback", // Where Google sends the user after they click "Allow".
+        userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo", // The endpoint used to fetch user details.
+      },
+      async (accessToken, refreshToken, profile, cb) => {
+        // This function runs after the user logs into Google successfully.
+        // 'profile' contains the user's Google name, email, and ID.
+        try {
+          const email = profile.emails[0].value; // Extracts the primary email.
+          const username = profile.displayName; // Extracts the user's full name.
+          const googleId = profile.id; // Extracts the unique, permanent Google ID.
 
-        const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
-        // Checks if this person has logged in before using this email.
+          const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+          // Checks if this person has logged in before using this email.
 
-        if (result.rows.length > 0) {
-          // If the user already exists in our DB:
-          return cb(null, result.rows[0]); // Log them in immediately.
-        } else {
-          // If this is a brand new user:
-          const newUser = await db.query(
-            "INSERT INTO users (username, email, password_hash, gender, weight, height, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-            // We use RETURNING * to get the newly created user object (including its new ID).
-            [username, email, `google_${googleId}`, 'Other', 0, 0, '2000-01-01'] 
-            // We save the Google ID in the password field since they don't have a local password.
-            // We provide default values for health data so the DB row can be created successfully.
-          );
-          return cb(null, newUser.rows[0]); // Log in the newly created user.
+          if (result.rows.length > 0) {
+            // If the user already exists in our DB:
+            return cb(null, result.rows[0]); // Log them in immediately.
+          } else {
+            // If this is a brand new user:
+            const newUser = await db.query(
+              "INSERT INTO users (username, email, password_hash, gender, weight, height, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+              // We use RETURNING * to get the newly created user object (including its new ID).
+              [username, email, `google_${googleId}`, 'Other', 0, 0, '2000-01-01']
+              // We save the Google ID in the password field since they don't have a local password.
+              // We provide default values for health data so the DB row can be created successfully.
+            );
+            return cb(null, newUser.rows[0]); // Log in the newly created user.
+          }
+        } catch (err) {
+          console.error("❌ Google Auth Error:", err);
+          return cb(err); // Handles errors during the database insert or lookup.
         }
-      } catch (err) {
-        console.error("❌ Google Auth Error:", err);
-        return cb(err); // Handles errors during the database insert or lookup.
       }
-    }
-  )
-);
+    )
+  );
+} else {
+  console.log("Google OAuth not configured. Skipping Google strategy.");
+}
 
 export default passport; 
 // Exports the configured Passport instance so it can be imported in your main 'index.js' or 'app.js'.

@@ -81,7 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }else{
    return 'http://26.35.223.225:3000/auth/profile'; // Option 3: Physical Device
   }
-    
+
   }
 
   /// GET Request: Downloads user data from the Node.js /profile route.

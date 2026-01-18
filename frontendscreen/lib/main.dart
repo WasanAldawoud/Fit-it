@@ -55,7 +55,7 @@ class _MyAppState extends State<MyApp> {
           fetchUrl = 'http://localhost:3000/auth/get-plan';
         } else if (Platform.isAndroid) {
           // Use your specific IP if on a real device, or 10.0.2.2 for emulator
-          fetchUrl = 'http://10.0.2.2:3000/auth/get-plan'; 
+          fetchUrl = 'http://10.0.2.2:3000/auth/get-plan';
         } else {
           fetchUrl = 'http://localhost:3000/auth/get-plan';
         }

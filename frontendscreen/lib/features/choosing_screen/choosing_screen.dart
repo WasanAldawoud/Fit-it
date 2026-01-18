@@ -1,5 +1,6 @@
-
 import 'package:flutter/material.dart';
+import '../plan_creation/presentation/screens/create_plan_screen.dart';
+import '../Ai_chat/chat_screen.dart';
 import '../plan_creation/presentation/screens/create_plan_screen.dart';
 
 ///ملف الإختيار
@@ -63,7 +64,12 @@ class ChoosingScreen extends StatelessWidget {
       ],
     ),
     child: ElevatedButton(
-      onPressed: () {},
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatScreen()),
+        );
+      },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.transparent, // شفاف لإظهار التدرج
         shadowColor: Colors.transparent, // بدون ظل

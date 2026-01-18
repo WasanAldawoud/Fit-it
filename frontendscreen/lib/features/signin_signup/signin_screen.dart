@@ -97,11 +97,11 @@ class _SigninScreenState extends State<SigninScreen> {
     // Platform-specific URL logic
     String baseUrl; 
     if (kIsWeb) {
-      baseUrl = 'http://localhost:3000/auth/signin'; 
+      baseUrl = 'http://localhost:3000/auth/signin';
     } else if (Platform.isAndroid) {
-      baseUrl = 'http://26.35.223.225:3000/auth/signin'; 
+      baseUrl = 'http://26.35.223.225:3000/auth/signin';
     } else {
-      baseUrl = 'http://10.0.2.2:3000/auth/signin'; 
+      baseUrl = 'http://10.0.2.2:3000/auth/signin';
     }
 
     try {
@@ -219,8 +219,8 @@ class _SigninScreenState extends State<SigninScreen> {
                       } else {
                         // 📱 MOBILE LOGIC:
                         // Open the external browser (Chrome/Safari) to handle the Google login.
-                        String url = Platform.isAndroid 
-                            ? 'http://26.35.223.225:3000/auth/google' 
+                        String url = Platform.isAndroid
+                            ? 'http://26.35.223.225:3000/auth/google'
                             : 'http://10.0.2.2:3000/auth/google';
                         
                         if (await canLaunchUrl(Uri.parse(url))) {
