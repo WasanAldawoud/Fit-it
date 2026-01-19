@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 
 import 'package:flutter/foundation.dart';
@@ -82,16 +83,16 @@ class _HomePageState extends State<HomePage> {
   String exerciseName,
 ) async {
   // MUST match the router.post("/mark-exercise-complete", ...) in authRoutes.js
-  String baseUrl;
-
-if (kIsWeb) {
-  // Option 1: Web Browser
-  baseUrl = 'http://localhost:3000';
-} else {
-  // Option 2 & 3: Mobile (Check manually for now or use a constant)
-  // Use 10.0.2.2 for Emulator or your IP 26.35.223.225 for Physical Device
-  baseUrl = 'http://26.35.223.225:3000'; 
-}
+ String baseUrl;
+    // We must use different IPs depending on the device running the app
+    if (kIsWeb) {
+      baseUrl = 'http://localhost:3000'; 
+    } else if (Platform.isAndroid) {
+      // 26.35.223.225 is your computer's specific IP on the local network
+      baseUrl = 'http://26.35.223.225:3000'; 
+    } else {
+      // 10.0.2.2 is the special gateway for the Android Emulator to see 'localhost'
+      baseUrl = 'http://10.0.2.2:3000'; 
  final String url = '$baseUrl/auth/mark-exercise-complete';
 
   try {
@@ -121,7 +122,7 @@ if (kIsWeb) {
     debugPrint("❌ Sync failed: $e");
   }
 }
-
+}
 
   void _resetActiveExercise() {
     if (_activeExercise == null) return;
