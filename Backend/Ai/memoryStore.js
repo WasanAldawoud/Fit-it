@@ -16,7 +16,7 @@ export function getConversation(userId) {
 }
 
 export function saveConversation(userId, messages) {
-  conversations.set(userId, messages.slice(-10)); // limit memory
+  conversations.set(userId, messages.slice(-20)); // limit memory
 }
 
 export function getConversationState(userId) {

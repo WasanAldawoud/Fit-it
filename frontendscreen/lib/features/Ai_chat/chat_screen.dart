@@ -129,48 +129,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
   }
 
-  void _handleApproval(bool approved) async {
-    if (approved) {
-      // User approved the plan
-      setState(() {
-        _isLoading = true;
-        messages.add(ChatMessage(text: "Yes, approve this plan", isUser: true));
-      });
-      _scrollToBottom();
 
-      // Call approval endpoint
-      final result = await approvePlan(
-        userId: userId,
-        userProfile: userProfile,
-      );
-
-      setState(() {
-        _isLoading = false;
-        _awaitingApproval = false;
-        
-        if (result['success']) {
-          messages.add(ChatMessage(
-            text: "✅ ${result['message']}\n\nYour plan has been saved and you can view it in the 'My Plans' section. Let me know if you have any questions about the exercises!",
-            isUser: false,
-          ));
-        } else {
-          messages.add(ChatMessage(
-            text: "❌ ${result['message']}\n\nPlease try again or contact support.",
-            isUser: false,
-          ));
-        }
-      });
-    } else {
-      // User rejected the plan
-      setState(() {
-        messages.add(ChatMessage(text: "No, I'd like to make changes", isUser: true));
-      });
-      
-      sendChatMessage("I'd like to make some changes to the plan");
-    }
-
-    _scrollToBottom();
-  }
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -230,46 +189,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // Approval buttons (shown when awaiting approval)
-          if (_awaitingApproval && !_isLoading)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                border: Border(
-                  top: BorderSide(color: Colors.grey[300]!),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _handleApproval(true),
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text("Yes, Approve"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _handleApproval(false),
-                      icon: const Icon(Icons.edit),
-                      label: const Text("No, Modify"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
 
           // Input field
           Container(
@@ -291,8 +211,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: TextField(
                     controller: _controller,
                     decoration: InputDecoration(
-                      hintText: _awaitingApproval 
-                          ? "Use buttons above to approve/modify"
+                      hintText: _awaitingApproval
+                          ? "Type 'yes' to approve or 'no' to modify"
                           : "Type a message...",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
@@ -305,9 +225,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       filled: true,
                       fillColor: Colors.grey[100],
                     ),
-                    enabled: !_isLoading && !_awaitingApproval,
+                    enabled: !_isLoading,
                     onSubmitted: (text) {
-                      if (text.isNotEmpty && !_awaitingApproval) {
+                      if (text.isNotEmpty) {
                         sendChatMessage(text);
                       }
                     },
@@ -315,7 +235,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 const SizedBox(width: 8),
                 CircleAvatar(
-                  backgroundColor: _isLoading || _awaitingApproval
+                  backgroundColor: _isLoading
                       ? Colors.grey
                       : Colors.blue[700],
                   child: IconButton(
@@ -329,7 +249,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                           )
                         : const Icon(Icons.send, color: Colors.white),
-                    onPressed: (_isLoading || _awaitingApproval)
+                    onPressed: _isLoading
                         ? null
                         : () {
                             if (_controller.text.isNotEmpty) {
