@@ -24,11 +24,20 @@ import db from "../config/db.js";
 export async function generateFitnessChat(req, res) {
   try {
     const { message, userProfile } = req.body;
-    const userId = req.user ? req.user.userid : req.body.userId;
+
+    // Require authentication - no fallback to req.body.userId
+    if (!req.user || !req.user.userid) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const userId = req.user.userid;
+
+    // Log user profile data for debugging
+    console.log(`👤 User ${userId} profile:`, JSON.stringify(userProfile, null, 2));
 
     // Input validation
-    if (!userId || !message || !userProfile) {
-      return res.status(400).json({ error: "Missing required fields: userId, message, userProfile" });
+    if (!message || !userProfile) {
+      return res.status(400).json({ error: "Missing required fields: message, userProfile" });
     }
 
     // Check if OpenAI client is available
@@ -344,12 +353,13 @@ async function savePlanToDatabase(userId, planData, userProfile) {
  */
 export async function approvePlan(req, res) {
   try {
-    const userId = req.user ? req.user.userid : req.body.userId;
-    const userProfile = req.body.userProfile || {};
-
-    if (!userId) {
-      return res.status(400).json({ error: "Missing userId" });
+    // Require authentication
+    if (!req.user || !req.user.userid) {
+      return res.status(401).json({ error: "Authentication required" });
     }
+
+    const userId = req.user.userid;
+    const userProfile = req.body.userProfile || {};
 
     const conversationState = getConversationState(userId);
     

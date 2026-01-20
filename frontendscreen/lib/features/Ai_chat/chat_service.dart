@@ -1,5 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http/browser_client.dart';
+
+// Helper function to get the appropriate HTTP client
+http.Client getHttpClient() {
+  // For web builds, use BrowserClient to handle cookies
+  return BrowserClient();
+}
 
 class ChatResponse {
   final String reply;
@@ -25,16 +32,15 @@ class ChatResponse {
 }
 
 Future<ChatResponse> sendMessage({
-  required String userId,
   required String message,
   required Map userProfile,
 }) async {
+  final client = getHttpClient();
   try {
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse("http://localhost:3000/ai/fitness-chat"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "userId": userId,
         "message": message,
         "userProfile": userProfile,
       }),
@@ -74,8 +80,9 @@ Future<Map<String, dynamic>> approvePlan({
   required String userId,
   required Map userProfile,
 }) async {
+  final client = getHttpClient();
   try {
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse("http://localhost:3000/ai/approve-plan"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
@@ -106,8 +113,9 @@ Future<Map<String, dynamic>> approvePlan({
 }
 
 Future<Map<String, dynamic>> getUserProfile(String userId) async {
+  final client = getHttpClient();
   try {
-    final response = await http.get(
+    final response = await client.get(
       Uri.parse("http://localhost:3000/auth/profile"),
       headers: {"Content-Type": "application/json"},
     );

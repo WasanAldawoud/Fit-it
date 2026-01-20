@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS user_plans (
     plan_id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(userid) ON DELETE CASCADE,
     plan_name VARCHAR(100) DEFAULT 'My Workout Plan',
+    goal VARCHAR(100),
+    duration_weeks INTEGER,
+    deadline TIMESTAMP,
+    current_weight NUMERIC(5, 2),
+    goal_weight NUMERIC(5, 2),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

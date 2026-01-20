@@ -58,7 +58,6 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     final response = await sendMessage(
-      userId: userId,
       message: "Hello",
       userProfile: userProfile,
     );
@@ -97,7 +96,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     final response = await sendMessage(
-      userId: userId,
       message: text,
       userProfile: userProfile,
     );
