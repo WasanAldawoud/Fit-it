@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import './chat_message.dart';
 import './chat_service.dart';
 
@@ -18,13 +19,11 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _awaitingApproval = false;
   String _conversationState = 'welcome';
 
-  final String userId = "user_123"; // Replace with real user ID from auth
+  String? userId; // Will be loaded from profile
   Map<String, dynamic> userProfile = {
     "height": 170,
     "weight": 90,
     "goal": "weight loss",
-    "days": ["Monday", "Friday"],
-    "equipment": false,
     "gender": "male",
     "birthdate": "1990-01-01",
   };
@@ -33,19 +32,21 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _loadUserProfile();
-    _sendWelcomeMessage();
   }
 
   Future<void> _loadUserProfile() async {
     try {
-      final profile = await getUserProfile(userId);
+      final profile = await getUserProfile("dummy"); // userId not needed for profile call
       if (profile.isNotEmpty) {
         setState(() {
+          userId = profile['userId']?.toString();
           userProfile = {
             ...userProfile,
             ...profile,
           };
         });
+        // Now that we have userId, send welcome message
+        _sendWelcomeMessage();
       }
     } catch (e) {
       print('Error loading user profile: $e');
@@ -53,11 +54,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendWelcomeMessage() async {
+    if (userId == null) return; // Wait for userId to be loaded
+
     setState(() {
       _isLoading = true;
     });
 
     final response = await sendMessage(
+      userId: userId!,
       message: "Hello",
       userProfile: userProfile,
     );
@@ -79,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void sendChatMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || userId == null) return;
 
     setState(() {
       messages.add(ChatMessage(text: text, isUser: true));
@@ -96,6 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     final response = await sendMessage(
+      userId: userId!,
       message: text,
       userProfile: userProfile,
     );
@@ -342,13 +347,43 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
-            Text(
-              msg.text,
-              style: TextStyle(
-                color: msg.isUser ? Colors.white : Colors.black87,
-                fontSize: 15,
-              ),
-            ),
+            msg.isUser
+                ? Text(
+                    msg.text,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                    ),
+                  )
+                : MarkdownBody(
+                    data: msg.text,
+                    styleSheet: MarkdownStyleSheet(
+                      p: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 15,
+                      ),
+                      strong: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      h1: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      h2: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      h3: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
           ],
         ),
       ),

@@ -120,6 +120,7 @@ export const getProfile = (req, res) => {
     // Passport automatically populates this via the 'deserializeUser' function.
     res.status(200).json({
       user: {
+        userId: req.user.userid || req.user.userId,
         username: req.user.username,
         email: req.user.email,
         gender: req.user.gender,

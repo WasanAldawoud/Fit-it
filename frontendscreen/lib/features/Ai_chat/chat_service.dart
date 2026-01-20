@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:http/browser_client.dart';
+import 'package:http/browser_client.dart' if (dart.library.io) 'package:http/io_client.dart';
 
 // Helper function to get the appropriate HTTP client
 http.Client getHttpClient() {
-  // For web builds, use BrowserClient to handle cookies
-  return BrowserClient();
+  // For web builds, use BrowserClient with credentials to handle cookies properly for cross-origin requests
+  return BrowserClient()..withCredentials = true;
 }
 
 class ChatResponse {
@@ -32,6 +32,7 @@ class ChatResponse {
 }
 
 Future<ChatResponse> sendMessage({
+  required String userId,
   required String message,
   required Map userProfile,
 }) async {
@@ -41,6 +42,7 @@ Future<ChatResponse> sendMessage({
       Uri.parse("http://localhost:3000/ai/fitness-chat"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
+        "userId": userId,
         "message": message,
         "userProfile": userProfile,
       }),
