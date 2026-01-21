@@ -19,7 +19,14 @@ import '../../../common/plan_controller.dart';
 /// This screen displays a grid of exercise categories. Tapping a category
 /// opens a dialog to select exercises and set their duration and days.
 class CreatePlanScreen extends StatefulWidget {
-  const CreatePlanScreen({super.key});
+  final Plan? existingPlan;
+  final String? source;
+
+  const CreatePlanScreen({
+    super.key,
+    this.existingPlan,
+    this.source,
+  });
 
   @override
   State<CreatePlanScreen> createState() => CreatePlanScreenState();
@@ -31,7 +38,6 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   /// Each [DialogExerciseState] contains the exercise name, duration, and selected days.
   /// This is the main data structure representing the user's workout plan.
   final List<DialogExerciseState> planStates  = [];
-  
 
   /// Step 2 (PlanGoalScreen) output.
   ///
@@ -57,6 +63,42 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
 
   /// BACKEND: Sent as `goal_weight` (double?).
   double? selectedGoalWeight;
+
+  /// Whether this is an edit mode (modifying existing plan)
+  late bool _isEditMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isEditMode = widget.existingPlan != null;
+    
+    // If editing existing plan, load its data
+    if (_isEditMode) {
+      final plan = widget.existingPlan!;
+      selectedGoal = plan.goal;
+      selectedDeadline = plan.deadline;
+      selectedWeeks = plan.durationWeeks;
+      selectedCurrentWeight = plan.currentWeight;
+      selectedGoalWeight = plan.goalWeight;
+      
+      // Load existing exercises
+      for (final exercise in plan.exercises) {
+        final state = DialogExerciseState(
+          name: exercise.name,
+          duration: exercise.duration,
+        );
+        state.days = Set<String>.from(exercise.days);
+        planStates.add(state);
+        
+        // Mark categories as selected
+        final categoryName = categories.firstWhere(
+          (cat) => cat.exercises.contains(exercise.name),
+          orElse: () => categories[0],
+        ).name;
+        selectedCategories.add(categoryName);
+      }
+    }
+  }
 
   /// Opens a dialog to select exercises for a given [category].
   ///
@@ -142,7 +184,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Plan saved to your account!")),
         );
-        final name = PlanController.instance.generateNextPlanName();
+        
         final exercises = planStates
             .map(
               (s) => PlanExercise(
@@ -152,16 +194,36 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
               ),
             )
             .toList();
-        PlanController.instance.addNewPlan(
-          name: name,
-          goal: selectedGoal,
-          deadline: selectedDeadline,
-          durationWeeks: selectedWeeks,
-          currentWeight: selectedCurrentWeight,
-          goalWeight: selectedGoalWeight,
-          exercises: exercises,
-          setAsCurrent: true,
-        );
+        
+        if (_isEditMode) {
+          // Update existing plan
+          final plan = widget.existingPlan!;
+          PlanController.instance.updatePlan(
+            plan,
+            goal: selectedGoal,
+            deadline: selectedDeadline,
+            durationWeeks: selectedWeeks,
+            currentWeight: selectedCurrentWeight,
+            goalWeight: selectedGoalWeight,
+            exercises: exercises,
+            currentWeightEnabledAtCreation: selectedCurrentWeight != null,
+          );
+        } else {
+          // Create new plan
+          final name = PlanController.instance.generateNextPlanName();
+          PlanController.instance.addNewPlan(
+            name: name,
+            goal: selectedGoal,
+            deadline: selectedDeadline,
+            durationWeeks: selectedWeeks,
+            currentWeight: selectedCurrentWeight,
+            goalWeight: selectedGoalWeight,
+            exercises: exercises,
+            setAsCurrent: true,
+            currentWeightEnabledAtCreation: selectedCurrentWeight != null,
+          );
+        }
+        
         // Go to Main Shell after successful save
         Navigator.pushReplacement(
           context,
@@ -248,23 +310,26 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          _isEditMode ? 'Edit Plan' : 'Create Your Own Plan',
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Create Your Own Plan',
-                style: TextStyle(
-                  fontSize: 28.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 8),
               Text(
-                'Step 1: Choose Exercise Categories',
+                _isEditMode ? 'Step 1: Edit Exercise Categories' : 'Step 1: Choose Exercise Categories',
                 style: TextStyle(
                   fontSize: 16.0,
                   color: Colors.grey[900],

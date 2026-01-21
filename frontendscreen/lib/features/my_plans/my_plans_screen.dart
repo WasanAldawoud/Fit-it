@@ -3,6 +3,7 @@ import '../../app_styles/color_constants.dart';
 import '../common/plan_controller.dart';
 import '../common/main_shell.dart';
 import '../choosing_screen/choosing_screen.dart';
+import '../plan_creation/presentation/screens/create_plan_screen.dart';
 
 class MyPlansScreen extends StatefulWidget {
   const MyPlansScreen({super.key});
@@ -30,10 +31,15 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
   }
 
   Future<void> _addNewPlanFlow() async {
-    // Go to choosing flow first
+    // Go to choosing flow with 'my_plans' as source to show back button
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ChoosingScreen()),
+      MaterialPageRoute(
+        builder: (_) => const ChoosingScreen(
+          showBackButton: true,
+          source: 'my_plans',
+        ),
+      ),
     );
     // After returning, create the plan with the first available name and set as current
     final plan = PlanController.instance.addNewPlan(setAsCurrent: true);
@@ -89,6 +95,148 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
     }
   }
 
+  void _modifyPlan(Plan plan) async {
+    // Navigate to CreatePlanScreen with the existing plan for editing
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreatePlanScreen(
+          existingPlan: plan,
+          source: 'my_plans',
+        ),
+      ),
+    );
+    // Refresh UI after returning from edit
+    setState(() {});
+  }
+
+  void _modifyPlanQuick(Plan plan) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Modify Plan'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (plan.deadline != null) ...[_buildModifyField('Deadline', plan, 'deadline', setState), const SizedBox(height: 12)],
+                    if (plan.currentWeight != null) ...[_buildModifyField('Current Weight', plan, 'currentWeight', setState), const SizedBox(height: 12)],
+                    if (plan.goalWeight != null) ...[_buildModifyField('Goal Weight', plan, 'goalWeight', setState), const SizedBox(height: 12)],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    setState(() {}); // Update UI after modifications
+  }
+
+  Widget _buildModifyField(String label, Plan plan, String fieldType, StateSetter setState) {
+    if (fieldType == 'deadline') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: plan.deadline ?? DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now().add(const Duration(days: 730)),
+              );
+              if (picked != null) {
+                setState(() {
+                  plan.deadline = picked;
+                  final now = DateTime.now();
+                  plan.durationWeeks = ((picked.difference(DateTime(now.year, now.month, now.day)).inDays) / 7).ceil();
+                });
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${plan.deadline!.year}-${plan.deadline!.month.toString().padLeft(2, '0')}-${plan.deadline!.day.toString().padLeft(2, '0')}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else if (fieldType == 'currentWeight') {
+      final controller = TextEditingController(text: plan.currentWeight?.toString() ?? '');
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: 'Enter weight in kg',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            onChanged: (value) {
+              final parsed = double.tryParse(value);
+              if (parsed != null) {
+                setState(() {
+                  plan.currentWeight = parsed;
+                });
+              }
+            },
+          ),
+        ],
+      );
+    } else if (fieldType == 'goalWeight') {
+      final controller = TextEditingController(text: plan.goalWeight?.toString() ?? '');
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: 'Enter goal weight in kg',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            onChanged: (value) {
+              final parsed = double.tryParse(value);
+              if (parsed != null) {
+                setState(() {
+                  plan.goalWeight = parsed;
+                });
+              }
+            },
+          ),
+        ],
+      );
+    }
+    return const SizedBox();
+  }
+
   void _selectDefault(Plan plan) {
     PlanController.instance.setCurrentPlan(plan);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -107,8 +255,14 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const MainShell()),
+          ),
+        ),
         title: const Text('My Plans', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
             icon: Icon(Icons.add, color: ColorConstants.primaryColor),
@@ -171,12 +325,28 @@ class _MyPlansScreenState extends State<MyPlansScreen> {
                           'Goal: ${plan.goal ?? '—'}  •  Deadline: ${plan.deadline == null ? '—' : _formatDate(plan.deadline!)}  •  ~${plan.durationWeeks ?? '—'}w',
                           style: const TextStyle(color: Colors.grey),
                         ),
+                        if (plan.deadline != null && DateTime.now().isAfter(plan.deadline!))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              'Final Date Reached at ${_formatDate(plan.deadline!)}',
+                              style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _renamePlan(plan),
+                  PopupMenuButton(
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        child: const Text('Rename'),
+                        onTap: () => _renamePlan(plan),
+                      ),
+                      PopupMenuItem(
+                        child: const Text('Modify Plan'),
+                        onTap: () => _modifyPlan(plan),
+                      ),
+                    ],
                   )
                 ],
               ),

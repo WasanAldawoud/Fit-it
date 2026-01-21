@@ -1,0 +1,15 @@
+# OS Junk
+.DS_Store
+Thumbs.db
+
+# IDE Files (Global)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# Logs (Global catch-all)
+*.log

@@ -18,7 +18,9 @@ class _MainShellState extends State<MainShell> {
     final pages = <Widget>[
       const HomePage(),
       const MyPlansScreen(),
-      const _AiChatPlaceholder(),
+      const AiChatPlaceholder(),
+      const Profile(),
+
     ];
     return Scaffold(
       body: pages[_index],
@@ -32,14 +34,27 @@ class _MainShellState extends State<MainShell> {
 
 
 /// this is JUST a placeholder for the ai chat screen  
-class _AiChatPlaceholder extends StatelessWidget {
-  const _AiChatPlaceholder();
+class AiChatPlaceholder extends StatelessWidget {
+  const AiChatPlaceholder();
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
       body: SafeArea(
         child: Center(
           child: Text(' AI Chat\n\nHI WASAN', style: TextStyle(fontSize: 18)),
+        ),
+      ),
+    );
+  }
+}
+class Profile extends StatelessWidget {
+  const Profile();
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Text(' Profile\n\nHI MARIYA', style: TextStyle(fontSize: 18)),
         ),
       ),
     );
