@@ -367,34 +367,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildNoPlanCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: const [
-          Icon(Icons.info_outline, color: Colors.black87),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text('No plan selected. Go to Plans tab to choose or create a plan.',
-                style: TextStyle(color: Colors.black87)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNoExercisesCard() {
     return Container(
       width: double.infinity,
