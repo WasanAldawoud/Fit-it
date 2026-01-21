@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="5a4020a3-dcb1-40ba-b09f-8f5d17f6a81d" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/controllers/authPlan.js" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/controllers/authPlan.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/db.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/routes/authRoutes.js" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/routes/authRoutes.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/server.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/analysis_options.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/analysis_options.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/common/main_shell.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/common/main_shell.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/common/plan_controller.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/common/plan_controller.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/home_page/home_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/home_page/home_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/my_plans/my_plans_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/my_plans/my_plans_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/create_plan_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/create_plan_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/profile/profile_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/profile/profile_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/signin_signup/signin_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/signin_signup/signin_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/main.dart" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4
+}]]></component>
+  <component name="ProjectId" id="384ML4uLMnpwRcT9P1YxksdFjJb" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Lenovo/OneDrive/Desktop/My pro 1/Fit-it",
+    "show.migrate.to.gradle.popup": "false"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5a4020a3-dcb1-40ba-b09f-8f5d17f6a81d" name="Changes" comment="" />
+      <created>1768415628582</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1768415628582</updated>
+    </task>
+    <servers />
+  </component>
+</project>

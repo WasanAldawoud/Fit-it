@@ -15,6 +15,7 @@ import db from './config/db.js';
 import './config/passport.js'; 
 
 import authRoutes from './routes/authRoutes.js';
+import aiRoutes from './Ai/aiRoutes.js';
 
 // Load secret keys from .env file
 dotenv.config();
@@ -27,15 +28,8 @@ const PgSession = pgSimple(session);
 //Allows the server to accept requests from different origins (like Flutter app running on a different port/IP)
 // 2. Configure it properly
 app.use(cors({
-  origin: function (origin, callback) {
-    // This allows any origin that sends a request, which is perfect for dev
-    if (!origin || origin.startsWith('http://localhost')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true, //Allows cookies to be sent from Flutter
+  origin: true, // Allow all origins for testing
+  credentials: true,               // 🔹 Allows cookies to be stored
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -55,9 +49,10 @@ app.use(session({
   saveUninitialized: false,
   cookie: { 
     maxAge: 30 * 24 * 60 * 60 * 1000,
-    httpOnly: true, // Recommended for security
-    secure: false,  // MUST be false because you we are using http://localhost (not https)
-    sameSite: 'lax' // Allows the cookie to be sent across different ports on localhost
+    httpOnly: true, 
+    secure: false,   // 🔹 MUST be false for localhost
+    sameSite: 'lax',  // 🔹 Allows the cookie to "travel" between ports
+    domain: 'localhost' // 🔹 Explicitly tell the browser this cookie is for localhost
   }
 }));
 
@@ -70,6 +65,9 @@ app.use(passport.session()); // This checks the cookie on every request to see w
 // "If anyone asks for /auth/signup, send them to the authRoutes file."
 //Tells Express that all routes defined in authRoutes.js (like /signup) should be accessed under the /auth prefix. The full path is now /auth/signup.
 app.use('/auth', authRoutes);
+
+// AI routes
+app.use('/ai', aiRoutes);
 
 // --- 5. Start (The Switch) ---
 const PORT = process.env.PORT || 3000;

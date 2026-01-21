@@ -197,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (kIsWeb) client = BrowserClient()..withCredentials = true;
 
     // We set a timeout so the UI doesn't freeze if the network is slow
-    await client.get(Uri.parse(logoutUrl)).timeout(const Duration(seconds: 5));
+    final response = await client.get(Uri.parse(logoutUrl)).timeout(const Duration(seconds: 5));
 
     // Move to SigninScreen regardless of the status code to ensure the user isn't stuck
     _navigateToSignin();

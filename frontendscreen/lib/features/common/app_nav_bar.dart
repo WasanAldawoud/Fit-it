@@ -18,7 +18,7 @@ class AppNavBar extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.view_list_outlined), label: 'Plans'),
         BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'AI Chat'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile')
       ],
     );
   }

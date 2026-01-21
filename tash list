@@ -1,0 +1,387 @@
+[1mdiff --git a/.idea/libraries/Flutter_Plugins.xml b/.idea/libraries/Flutter_Plugins.xml[m
+[1mdeleted file mode 100644[m
+[1mindex b0f6971..0000000[m
+[1m--- a/.idea/libraries/Flutter_Plugins.xml[m
+[1m+++ /dev/null[m
+[36m@@ -1,7 +0,0 @@[m
+[31m-<component name="libraryTable">[m
+[31m-  <library name="Flutter Plugins" type="FlutterPluginsLibraryType">[m
+[31m-    <CLASSES />[m
+[31m-    <JAVADOC />[m
+[31m-    <SOURCES />[m
+[31m-  </library>[m
+[31m-</component>[m
+\ No newline at end of file[m
+[1mdiff --git a/.idea/workspace.xml b/.idea/workspace.xml[m
+[1mindex 2ad49bf..8e325ff 100644[m
+[1m--- a/.idea/workspace.xml[m
+[1m+++ b/.idea/workspace.xml[m
+[36m@@ -3,171 +3,6 @@[m
+   <component name="AutoImportSettings">[m
+     <option name="autoReloadType" value="NONE" />[m
+   </component>[m
+[31m-  <component name="ChangeListManager">[m
+[31m-    <list default="true" id="1d2aabd9-d7ad-4575-9ecb-13c7b099a667" name="Changes" comment="Re-Arrangement matter" />[m
+[31m-    <option name="SHOW_DIALOG" value="false" />[m
+[31m-    <option name="HIGHLIGHT_CONFLICTS" value="true" />[m
+[31m-    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />[m
+[31m-    <option name="LAST_RESOLUTION" value="IGNORE" />[m
+[31m-  </component>[m
+[31m-  <component name="ClangdSettings">[m
+[31m-    <option name="formatViaClangd" value="false" />[m
+[31m-  </component>[m
+[31m-  <component name="Git.Settings">[m
+[31m-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />[m
+[31m-  </component>[m
+[31m-  <component name="GitHubPullRequestSearchHistory">{[m
+[31m-  &quot;lastFilter&quot;: {[m
+[31m-    &quot;state&quot;: &quot;OPEN&quot;,[m
+[31m-    &quot;assignee&quot;: &quot;loaiftaha&quot;[m
+[31m-  }[m
+[31m-}</component>[m
+[31m-  <component name="GithubPullRequestsUISettings">{[m
+[31m-  &quot;selectedUrlAndAccountId&quot;: {[m
+[31m-    &quot;url&quot;: &quot;https://github.com/WasanAldawoud/Fit-it&quot;,[m
+[31m-    &quot;accountId&quot;: &quot;475cf8b9-e36e-4caa-8aa0-1d6ad70b36ff&quot;[m
+[31m-  }[m
+[31m-}</component>[m
+[31m-  <component name="ProblemsViewState">[m
+[31m-    <option name="selectedTabId" value="CurrentFile" />[m
+[31m-  </component>[m
+[31m-  <component name="ProjectColorInfo">{[m
+[31m-  &quot;associatedIndex&quot;: 8[m
+[31m-}</component>[m
+[31m-  <component name="ProjectId" id="35Zi9u6zR8VDC3B5T5ZdlQmeXt9" />[m
+[31m-  <component name="ProjectViewState">[m
+[31m-    <option name="hideEmptyMiddlePackages" value="true" />[m
+[31m-    <option name="showLibraryContents" value="true" />[m
+[31m-  </component>[m
+[31m-  <component name="PropertiesComponent"><![CDATA[{[m
+[31m-  "keyToString": {[m
+[31m-    "Flutter.main.dart.executor": "Run",[m
+[31m-    "ModuleVcsDetector.initialDetectionPerformed": "true",[m
+[31m-    "RunOnceActivity.ShowReadmeOnStart": "true",[m
+[31m-    "RunOnceActivity.cidr.known.project.marker": "true",[m
+[31m-    "RunOnceActivity.git.unshallow": "true",[m
+[31m-    "RunOnceActivity.readMode.enableVisualFormatting": "true",[m
+[31m-    "cf.first.check.clang-format": "false",[m
+[31m-    "cidr.known.project.marker": "true",[m
+[31m-    "dart.analysis.tool.window.visible": "false",[m
+[31m-    "git-widget-placeholder": "LoaiSideFrontend",[m
+[31m-    "io.flutter.reload.alreadyRun": "true",[m
+[31m-    "last_opened_file_path": "C:/Users/loaif/AndroidStudioProjects/FitIt/Fit-it",[m
+[31m-    "settings.editor.selected.configurable": "dart.settings",[m
+[31m-    "show.migrate.to.gradle.popup": "false"[m
+[31m-  }[m
+[31m-}]]></component>[m
+[31m-  <component name="RecentsManager">[m
+[31m-    <key name="MoveFile.RECENT_KEYS">[m
+[31m-      <recent name="C:\Users\loaif\AndroidStudioProjects\FitIt\Fit-it\frontendscreen\lib\features" />[m
+[31m-      <recent name="C:\Users\loaif\AndroidStudioProjects\FitIt\Fit-it\frontendscreen\lib\screens" />[m
+[31m-      <recent name="C:\Users\loaif\AndroidStudioProjects\FitIt\Fit-it\frontendscreen\lib\features\home_page" />[m
+[31m-      <recent name="C:\Users\loaif\AndroidStudioProjects\FitIt\Fit-it\frontendscreen\lib\features\signin_signup_screens" />[m
+[31m-      <recent name="C:\Users\loaif\AndroidStudioProjects\FitIt\Fit-it\frontendscreen\lib\features\plan_creation\presentation\screens" />[m
+[31m-    </key>[m
+[31m-  </component>[m
+[31m-  <component name="RunManager">[m
+[31m-    <configuration name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter">[m
+[31m-      <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />[m
+[31m-      <method v="2" />[m
+[31m-    </configuration>[m
+[31m-  </component>[m
+[31m-  <component name="TaskManager">[m
+[31m-    <task active="true" id="Default" summary="Default task">[m
+[31m-      <changelist id="1d2aabd9-d7ad-4575-9ecb-13c7b099a667" name="Changes" comment="" />[m
+[31m-      <created>1763323846769</created>[m
+[31m-      <option name="number" value="Default" />[m
+[31m-      <option name="presentableId" value="Default" />[m
+[31m-      <updated>1763323846769</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00001" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763325742099</created>[m
+[31m-      <option name="number" value="00001" />[m
+[31m-      <option name="presentableId" value="LOCAL-00001" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763325742099</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00002" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763326516192</created>[m
+[31m-      <option name="number" value="00002" />[m
+[31m-      <option name="presentableId" value="LOCAL-00002" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763326516192</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00003" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763326984912</created>[m
+[31m-      <option name="number" value="00003" />[m
+[31m-      <option name="presentableId" value="LOCAL-00003" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763326984912</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00004" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763327228377</created>[m
+[31m-      <option name="number" value="00004" />[m
+[31m-      <option name="presentableId" value="LOCAL-00004" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763327228377</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00005" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763327502870</created>[m
+[31m-      <option name="number" value="00005" />[m
+[31m-      <option name="presentableId" value="LOCAL-00005" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763327502870</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00006" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763328105272</created>[m
+[31m-      <option name="number" value="00006" />[m
+[31m-      <option name="presentableId" value="LOCAL-00006" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763328105272</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00007" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763328138535</created>[m
+[31m-      <option name="number" value="00007" />[m
+[31m-      <option name="presentableId" value="LOCAL-00007" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763328138535</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00008" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763328927643</created>[m
+[31m-      <option name="number" value="00008" />[m
+[31m-      <option name="presentableId" value="LOCAL-00008" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763328927643</updated>[m
+[31m-    </task>[m
+[31m-    <task id="LOCAL-00009" summary="Re-Arrangement matter">[m
+[31m-      <option name="closed" value="true" />[m
+[31m-      <created>1763328947965</created>[m
+[31m-      <option name="number" value="00009" />[m
+[31m-      <option name="presentableId" value="LOCAL-00009" />[m
+[31m-      <option name="project" value="LOCAL" />[m
+[31m-      <updated>1763328947965</updated>[m
+[31m-    </task>[m
+[31m-    <option name="localTasksCounter" value="10" />[m
+[31m-    <servers />[m
+[31m-  </component>[m
+[31m-  <component name="Vcs.Log.Tabs.Properties">[m
+[31m-    <option name="TAB_STATES">[m
+[31m-      <map>[m
+[31m-        <entry key="MAIN">[m
+[31m-          <value>[m
+[31m-            <State />[m
+[31m-          </value>[m
+[31m-        </entry>[m
+[31m-      </map>[m
+[31m-    </option>[m
+[31m-  </component>[m
+[31m-  <component name="VcsManagerConfiguration">[m
+[31m-    <MESSAGE value="Re-Arrangement matter" />[m
+[31m-    <option name="LAST_COMMIT_MESSAGE" value="Re-Arrangement matter" />[m
+[31m-  </component>[m
+[32m+[m[32m  <component name="ProjectId" id="384ML4uLMnpwRcT9P1YxksdFjJb" />[m
+[32m+[m[32m  <component name="PropertiesComponent">{}</component>[m
+ </project>[m
+\ No newline at end of file[m
+[1mdiff --git a/Backend/.env b/Backend/.env[m
+[1mindex 1d00aa5..a7dd788 100644[m
+[1m--- a/Backend/.env[m
+[1m+++ b/Backend/.env[m
+[36m@@ -5,4 +5,6 @@[m [mPG_PASSWORD="12345123123L"[m
+ PG_PORT="5432"[m
+ PORT="3000"[m
+ SESSION_SECRET="secret_key_123"[m
+[31m-SESSION_TABLE="sessions"[m
+\ No newline at end of file[m
+[32m+[m[32mSESSION_TABLE="sessions"[m
+[32m+[m[32mGOOGLE_CLIENT_ID=495837489202-jo6g45c9iqrs3le6otu5ntlfpkpmba8v.apps.googleusercontent.com[m
+[32m+[m[32mGOOGLE_CLIENT_SECRET=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[m
+\ No newline at end of file[m
+[1mdiff --git a/Backend/config/passport.js b/Backend/config/passport.js[m
+[1mindex 7b714c0..61630b7 100644[m
+[1m--- a/Backend/config/passport.js[m
+[1m+++ b/Backend/config/passport.js[m
+[36m@@ -1,66 +1,190 @@[m
+[31m-//Defines the steps to verify a password hash against the stored hash.[m
+[31m-//serializeUser writes the minimal info (ID) to the cookie. deserializeUser reads the ID from the cookie to fetch the full user from the DB on every request.[m
+[31m-import passport from "passport";[m
+[31m-import { Strategy as LocalStrategy } from "passport-local";[m
+[31m-import bcrypt from "bcryptjs";[m
+[32m+[m[32mimport passport from "passport";[m[41m [m
+[32m+[m[32m// Imports the main Passport library which handles the authentication middleware logic.[m
+[32m+[m[32m// It acts as a manager for different "strategies" (ways of logging in).[m
+[32m+[m
+[32m+[m[32mimport { Strategy as LocalStrategy } from "passport-local";[m[41m [m
+[32m+[m[32m// Imports the specific logic for "Local" authentication (email/username and password).[m
+[32m+[m[32m// Renaming it to 'LocalStrategy' makes it more readable in the code below.[m
+[32m+[m
+[32m+[m[32mimport bcrypt from "bcryptjs";[m[41m [m
+[32m+[m[32m// Imports a library used to securely hash passwords so we don't store plain text.[m
+[32m+[m[32m// It is used here to compare the user's typed password with the hashed version in the DB.[m
+[32m+[m
+ import db from "./db.js"; [m
+[31m-import env from "dotenv";[m
+[32m+[m[32m// Imports your custom database connection instance (likely using 'pg' for PostgreSQL).[m
+[32m+[m[32m// This allows the auth code to run SQL queries against your 'users' table.[m
+[32m+[m
+[32m+[m[32mimport env from "dotenv";[m[41m [m
+[32m+[m[32m// Imports the dotenv library to manage sensitive information like API keys.[m
+[32m+[m[32m// This prevents hardcoding secrets like Google Client IDs into your source code.[m
+[32m+[m
+[32m+[m[32mimport { Strategy as GoogleStrategy } from "passport-google-oauth20";[m[41m [m
+[32m+[m[32m// Imports the OAuth 2.0 strategy specifically for Google's login system.[m
+[32m+[m[32m// This handles the complex "handshake" between your app and Google's servers.[m
+ [m
+[31m-env.config();[m
+[32m+[m[32menv.config();[m[41m [m
+[32m+[m[32m// Executes the configuration function that reads the .env file.[m
+[32m+[m[32m// It populates 'process.env' so variables like process.env.GOOGLE_CLIENT_ID are available.[m
+ [m
+[31m-// 1. SERIALIZE (Write ID to Cookie)[m
+[32m+[m
+[32m+[m[32m// 1. SERIALIZE (Saving the user to the session)[m
+[32m+[m[32m/**[m
+[32m+[m[32m * 1. SERIALIZATION[m
+[32m+[m[32m * When a user logs in, Passport takes the user object and "serializes" it.[m
+[32m+[m[32m * This means it picks one unique piece of data (the ID) to save into the session cookie.[m
+[32m+[m[32m */[m
+ passport.serializeUser((user, cb) => {[m
+[31m-  // Use whatever ID comes back from your DB (usually userid in lowercase for PG)[m
+[31m-  const id = user.userid || user.userId || user.id;[m
+[31m-  console.log("🔹 DEBUG: Serializing User ID:", id);[m
+[32m+[m[32m  // This function runs only ONCE when the user successfully logs in.[m
+[32m+[m[32m  // Its job is to determine which small piece of information should be stored in the session cookie.[m
+[32m+[m
+[32m+[m[32m  const id = user.userid || user.userid || user.id;[m
+[32m+[m[32m  // Accesses the unique identifier from the user object returned by the DB or Google.[m
+[32m+[m[32m  // Checking multiple casings ensures the code doesn't crash if the DB returns 'userid' vs 'id'.[m
+[32m+[m
+[32m+[m[32m  console.log("🔹 STEP 1: Saving User ID to Session:", id);[m
+[32m+[m[32m  // Logs the ID being saved so you can debug the login process in the terminal.[m
+[32m+[m
+   cb(null, id);[m
+[32m+[m[32m  // Calls the callback function. 'null' means no error occurred.[m
+[32m+[m[32m  // 'id' is the data that Passport will now encrypt into the user's browser cookie.[m
+ });[m
+ [m
+[31m-// 2. DESERIALIZE (Read ID from Cookie and find User)[m
+[32m+[m[32m// 2. DESERIALIZE (Retrieving the user from the session)[m
+[32m+[m[32m/**[m
+[32m+[m[32m * 2. DESERIALIZATION[m
+[32m+[m[32m * On every single request (e.g., when the user refreshes the page), Passport sees the cookie.[m
+[32m+[m[32m * It takes the ID from that cookie and runs this function to "find" the full user in your DB.[m
+[32m+[m[32m */[m
+ passport.deserializeUser(async (id, cb) => {[m
+[32m+[m[32m  // This function runs on EVERY subsequent request the user makes to your server.[m
+[32m+[m[32m  // It takes the ID found in the cookie and looks for the full user profile.[m
+[32m+[m
+   try {[m
+[31m-    console.log("🔹 DEBUG: Deserializing ID:", id);[m
+[31m-    // Be careful: In your SQL 'Create Table', you used 'userId' [m
+[31m-    // but standard PG returns lowercase 'userid' unless quoted.[m
+[32m+[m[32m    console.log("🔹 STEP 2: Looking up user by ID:", id);[m
+[32m+[m[32m    // Debug log to show which user is currently trying to access a protected route.[m
+[32m+[m
+     const result = await db.query("SELECT * FROM users WHERE userid = $1", [id]);[m
+[31m-    [m
+[32m+[m[32m    // Uses the ID from the cookie to ask the database for all columns for this specific user.[m
+[32m+[m[32m    // '$1' is a placeholder used to prevent SQL injection attacks.[m
+[32m+[m
+     if (result.rows.length > 0) {[m
+[31m-      cb(null, result.rows[0]);[m
+[31m-    } else {[m
+[32m+[m[32m      // Checks if the database actually returned a user record.[m
+[32m+[m[41m      [m
+[32m+[m[32m      cb(null, result.rows[0]);[m[41m [m
+[32m+[m[32m      // Successful lookup! The full user object is passed to Passport.[m
+[32m+[m[32m      // Passport now attaches this object to 'req.user', making it available in your routes.[m
+[32m+[m[32m    } else {[m[41m [m
+[32m+[m[32m      console.log("❌ STEP 2 ERROR: User ID not found in database.");[m
+[32m+[m[32m      // Triggers if a cookie exists for an ID that was deleted from the database.[m
+[32m+[m
+       cb(null, false);[m
+[32m+[m[32m      // Tells Passport that the session is invalid because the user doesn't exist anymore.[m
+     }[m
+   } catch (err) {[m
+[31m-    console.error("❌ Deserialization Error:", err);[m
+[31m-    cb(err);[m
+[32m+[m[32m    console.error("❌ STEP 2 CRASH:", err);[m
+[32m+[m[32m    // Catches database connection errors or syntax errors.[m
+[32m+[m
+[32m+[m[32m    cb(err);[m[41m [m
+[32m+[m[32m    // Passes the error back to Express so the app can show an error page or log.[m
+   }[m
+ });[m
+ [m
+[31m-// 3. LOGIN STRATEGY[m
+[32m+[m[32m// 3. LOGIN STRATEGY (Checking the password)[m
+[32m+[m[32m/**[m
+[32m+[m[32m * 3. LOCAL STRATEGY (Login with Username/Password)[m
+[32m+[m[32m */[m
+ passport.use([m
+[31m-  "local",[m
+[32m+[m[32m  "local", // Names this strategy 'local' so you can call it using passport.authenticate('local').[m
+   new LocalStrategy([m
+     { usernameField: "username", passwordField: "password" }, [m
+[32m+[m[32m    // Tells Passport which fields in your HTML/JSON login form to look for.[m
+[32m+[m[32m    // It maps 'req.body.username' and 'req.body.password' to the variables in the function below.[m
+[32m+[m
+     async (username, password, cb) => { [m
+[32m+[m[32m      // The main logic for checking if credentials are correct.[m
+       try {[m
+[32m+[m[32m        console.log("🔹 STEP 3: Attempting login for username:", username);[m
+[32m+[m[32m        // Debug log to track which user is attempting a login.[m
+[32m+[m
+         const result = await db.query("SELECT * FROM users WHERE username = $1", [username]); [m
+[31m-        [m
+[32m+[m[32m        // Queries the DB to see if the username provided exists.[m
+[32m+[m
+         if (result.rows.length > 0) {[m
+           const user = result.rows[0];[m
+[32m+[m[32m          // Stores the found user record in a temporary 'user' variable.[m
+[32m+[m
+[32m+[m[32m          if (!user.password_hash) {[m
+[32m+[m[32m            // Safety check: ensure the database column name matches what you wrote here.[m
+[32m+[m[32m            console.error("❌ STEP 3 ERROR: Column 'password_hash' not found!");[m
+[32m+[m[32m            return cb(null, false, { message: "Database error" });[m
+[32m+[m[32m          }[m
+[32m+[m
+           const valid = await bcrypt.compare(password, user.password_hash);[m
+[31m-          [m
+[32m+[m[32m          // bcrypt.compare takes the "plain" password from the user and hashes it.[m
+[32m+[m[32m          // It then checks if that new hash matches the one stored in the DB.[m
+[32m+[m
+           if (valid) {[m
+[32m+[m[32m            console.log("✅ STEP 3 SUCCESS: Password matches!");[m
+             return cb(null, user); [m
+[32m+[m[32m            // Success! We pass the 'user' object forward to the Serialization step.[m
+           } else {[m
+[32m+[m[32m            console.log("❌ STEP 3 FAIL: Wrong password.");[m
+             return cb(null, false, { message: "Incorrect password" });[m
+[32m+[m[32m            // 'false' tells Passport the login failed. The message can be shown to the user.[m
+           }[m
+         } else {[m
+[32m+[m[32m          console.log("❌ STEP 3 FAIL: Username not found in DB.");[m
+           return cb(null, false, { message: "Username not registered" }); [m
+[32m+[m[32m          // Triggers if the SELECT query returns 0 rows.[m
+         }[m
+       } catch (err) {[m
+[32m+[m[32m        console.error("❌ STEP 3 CRASH:", err);[m
+         return cb(err);[m
+[32m+[m[32m        // Handles technical failures like the DB being offline.[m
+[32m+[m[32m      }[m
+[32m+[m[32m    }[m
+[32m+[m[32m  )[m
+[32m+[m[32m);[m
+[32m+[m[32mpassport.use([m
+[32m+[m[32m  new GoogleStrategy([m
+[32m+[m[32m    {[m
+[32m+[m[32m      clientID: process.env.GOOGLE_CLIENT_ID, // Your app's unique ID from
