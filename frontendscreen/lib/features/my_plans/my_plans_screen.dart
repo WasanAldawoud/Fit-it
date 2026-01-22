@@ -242,7 +242,7 @@ class MyPlansScreenState extends State<MyPlansScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha:0.06),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -251,7 +251,7 @@ class MyPlansScreenState extends State<MyPlansScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: ColorConstants.primaryColor.withOpacity(0.1),
+                      backgroundColor: ColorConstants.primaryColor.withValues(alpha: 0.1),
                       child: Icon(Icons.fitness_center, color: ColorConstants.primaryColor),
                     ),
                     const SizedBox(width: 12),
