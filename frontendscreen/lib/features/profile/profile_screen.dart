@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:frontendscreen/features/signin_signup/signin_screen.dart';
+import '../signin_signup/signin_screen.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:frontendscreen/app_styles/color_constants.dart';
+import '../../app_styles/color_constants.dart';
 import 'dart:convert'; // Used to turn JSON from the server into Dart Maps
 import 'package:http/http.dart' as http; // Main library for API calls
 import 'package:http/browser_client.dart'; // Handles Cookies for Web (Passport.js support)
@@ -197,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (kIsWeb) client = BrowserClient()..withCredentials = true;
 
     // We set a timeout so the UI doesn't freeze if the network is slow
-    final response = await client.get(Uri.parse(logoutUrl)).timeout(const Duration(seconds: 5));
+    await client.get(Uri.parse(logoutUrl)).timeout(const Duration(seconds: 5));
 
     // Move to SigninScreen regardless of the status code to ensure the user isn't stuck
     _navigateToSignin();

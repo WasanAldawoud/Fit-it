@@ -1,5 +1,5 @@
-name: frontendscreen
-description: "A Graduation Project App"
+name: FitIt
+description: "Fitness, Graduation Project App"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -36,6 +36,7 @@ dependencies:
   url_launcher: ^6.3.0
   image_picker: ^1.0.7
   flutter_svg: ^2.0.10+1
+  fl_chart: ^0.68.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

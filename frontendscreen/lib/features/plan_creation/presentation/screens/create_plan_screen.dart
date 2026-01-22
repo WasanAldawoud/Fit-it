@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
 import '../widgets/category_card.dart';
 import '../widgets/exercise_selection_dialog.dart';
-import '../../data/models/dialog_exercise_state.dart';
-import '../../data/models/exercise_category.dart';
+import'../../data/models/dialog_exercise_state.dart';
+import'../../data/models/exercise_category.dart';
+import '../../../../app_styles/color_constants.dart';
 import '../../../common/main_shell.dart'; // To navigate after saving
 import 'plan_goal_screen.dart';
+
+import 'dart:convert'; // For jsonEncode
+import 'package:http/http.dart' as http; // For network requests
+import 'package:flutter/foundation.dart'; // For kIsWeb check
+import 'package:http/browser_client.dart'; // Add this for Web support
+import 'dart:io'; //to use it on device
 import '../../../common/plan_controller.dart';
 
 /// A screen where users can create a custom workout plan.
 ///
 /// This screen displays a grid of exercise categories. Tapping a category
 /// opens a dialog to select exercises and set their duration and days.
-import 'dart:convert'; // For jsonEncode: Converts Dart objects into JSON strings for the backend
-import 'package:http/http.dart' as http; // Standard package for network requests
-import 'package:flutter/foundation.dart'; // For kIsWeb: Checks if the app is running in a browser
-import 'package:http/browser_client.dart'; // Specialized client for Web to handle Session Cookies
-import 'dart:io'; // Required for Platform.isAndroid check
-
-/// A screen where users can create a custom workout plan and save it to the PostgreSQL database.
 class CreatePlanScreen extends StatefulWidget {
-  const CreatePlanScreen({super.key});
+  final Plan? existingPlan;
+  final String? source;
+
+  const CreatePlanScreen({
+    super.key,
+    this.existingPlan,
+    this.source,
+  });
 
   @override
   State<CreatePlanScreen> createState() => CreatePlanScreenState();
@@ -31,7 +38,9 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   /// Each [DialogExerciseState] contains the exercise name, duration, and selected days.
   /// This is the main data structure representing the user's workout plan.
   final List<DialogExerciseState> planStates  = [];
-  
+
+  /// Plan name (editable at Step 1)
+  late String _planName;
 
   /// Step 2 (PlanGoalScreen) output.
   ///
@@ -58,6 +67,49 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   /// BACKEND: Sent as `goal_weight` (double?).
   double? selectedGoalWeight;
 
+  /// Whether this is an edit mode (modifying existing plan)
+  late bool _isEditMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isEditMode = widget.existingPlan != null;
+    
+    // Initialize plan name
+    if (_isEditMode) {
+      _planName = widget.existingPlan!.name;
+    } else {
+      _planName = PlanController.instance.generateNextPlanName();
+    }
+    
+    // If editing existing plan, load its data
+    if (_isEditMode) {
+      final plan = widget.existingPlan!;
+      selectedGoal = plan.goal;
+      selectedDeadline = plan.deadline;
+      selectedWeeks = plan.durationWeeks;
+      selectedCurrentWeight = plan.currentWeight;
+      selectedGoalWeight = plan.goalWeight;
+      
+      // Load existing exercises
+      for (final exercise in plan.exercises) {
+        final state = DialogExerciseState(
+          name: exercise.name,
+          duration: exercise.duration,
+        );
+        state.days = Set<String>.from(exercise.days);
+        planStates.add(state);
+        
+        // Mark categories as selected
+        final categoryName = categories.firstWhere(
+          (cat) => cat.exercises.contains(exercise.name),
+          orElse: () => categories[0],
+        ).name;
+        selectedCategories.add(categoryName);
+      }
+    }
+  }
+
   /// Opens a dialog to select exercises for a given [category].
   ///
   /// This method shows an [ExerciseSelectionDialog] populated with exercises
@@ -67,18 +119,72 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   /// When the dialog is closed, it updates the [planStates] with the new or
   /// modified exercise selections.
 
-  /// Holds the state of all exercises selected by the user.
-  /// This is the data we will eventually map to our database schema.
+  void _showRenamePlanDialog() async {
+    final controller = TextEditingController(text: _planName);
+    String? errorText;
 
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Rename Plan'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Enter plan name',
+                      border: const OutlineInputBorder(),
+                      errorText: errorText,
+                    ),
+                    onChanged: (value) {
+                      final trimmed = value.trim();
+                      if (trimmed.isEmpty) {
+                        setState(() => errorText = 'Plan name cannot be empty');
+                      } else {
+                        // Check for existing plan names (case-insensitive)
+                        final exists = PlanController.instance.plans.any(
+                          (p) => p.name.toLowerCase() == trimmed.toLowerCase() && p != widget.existingPlan
+                        );
+                        setState(() => errorText = exists ? 'Plan name already exists' : null);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: errorText == null && controller.text.trim().isNotEmpty
+                      ? () => Navigator.pop(context, controller.text.trim())
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ColorConstants.primaryColor,
+                  ),
+                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
 
-  // --------------------------------------------------------------------------
-  // BACKEND LINKING LOGIC
-  // --------------------------------------------------------------------------
-  
-  /// Sends the created plan to the Node.js backend.
+    if (newName != null && newName.isNotEmpty) {
+      setState(() {
+        _planName = newName;
+      });
+    }
+  }
+
   Future<void> savePlanToDatabase() async {
-    // 1. Client-side Validation
-    // 1. Client-side Validation
     if (planStates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select at least one exercise")),
@@ -86,29 +192,19 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
       return;
     }
 
-    // 2. Dynamic URL Logic
-    // Different platforms require different addresses to reach 'localhost'
-    String baseUrl;
-    if (kIsWeb) {
-      baseUrl = 'http://localhost:3000/auth/save-plan'; // Standard for browsers
-    } else if (Platform.isAndroid) {
-      // Use your specific computer IP if testing on a real Android device
-      baseUrl = 'http://26.35.223.225:3000/auth/save-plan'; 
-    } else {
-      baseUrl = 'http://10.0.2.2:3000/auth/save-plan'; // Special alias for Android Emulators
-    }
+    // Determine URL based on platform (Same logic as your Sign-up)
+   String baseUrl;
 
-    // 3. Data Transformation (Mapping UI to DB Schema)
-    // We convert the 'planStates' list into a List of Maps that match the Node.js 'req.body'
-    // 2. Dynamic URL Logic
-    // Different platforms require different addresses to reach 'localhost'
-    
-
-    // 3. Data Transformation (Mapping UI to DB Schema)
-    // We convert the 'planStates' list into a List of Maps that match the Node.js 'req.body'
+ if (kIsWeb) {
+  baseUrl = 'http://localhost:3000/auth/save-plan'; // 
+} else if (Platform.isAndroid) {
+  baseUrl = 'http://10.0.2.2:3000/auth/save-plan'; // 
+} else {
+  baseUrl = 'http://localhost:3000/auth/save-plan'; // 
+}
+    // Map your planStates (UI) to the Database Schema
     final List<Map<String, dynamic>> exercisesJson = planStates.map((state) {
-      // Find the category name for the current exercise
-      // Find the category name for the current exercise
+      // Logic to find which category this exercise belongs to
       final categoryName = categories.firstWhere(
         (cat) => cat.exercises.contains(state.name),
         orElse: () => categories[0],
@@ -117,68 +213,60 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
       return {
         "category": categoryName,
         "name": state.name,
-        // Convert Duration object to a string like "10m 0s" for the database TEXT column
-        // Convert Duration object to a string like "10m 0s" for the database TEXT column
+        // Convert Duration to string "MM:SS"
         "duration": "${state.duration!.inMinutes}m ${state.duration!.inSeconds % 60}s",
-        // Convert the 'Set' of days to a 'List' so PostgreSQL can save it as an ARRAY
-        "days": state.days.toList(), 
-        // Convert the 'Set' of days to a 'List' so PostgreSQL can save it as an ARRAY
-        "days": state.days.toList(), 
+        "days": state.days.toList(), // Convert Set to List for PostgreSQL TEXT[]
       };
     }).toList();
 
     try {
-      // 4. Client Setup (Handling Cookies/Sessions)
-      // 4. Client Setup (Handling Cookies/Sessions)
+    // --- THE FIX STARTS HERE ---
+      // We create a special 'client' that is capable of sending cookies on Web
       var client = http.Client();
 
       if (kIsWeb) {
-        // IMPORTANT: BrowserClient with 'withCredentials = true' ensures that
-        // the Passport.js session cookie (connect.sid) is sent with the request.
-        // IMPORTANT: BrowserClient with 'withCredentials = true' ensures that
-        // the Passport.js session cookie (connect.sid) is sent with the request.
+        // This line tells the browser: "Attach the Session Cookie to this request"
         client = BrowserClient()..withCredentials = true;
       }
 
-      // 5. Execution of the POST Request
-      // 5. Execution of the POST Request
+      final payload = {
+        /// BACKEND: `/auth/save-plan` payload contract (nullable fields allowed)
+        ///
+        /// Required:
+        /// - `plan_name`: String
+        /// - `exercises`: List<Map>
+        ///
+        /// Optional (can be null due to checkboxes in Step 2):
+        /// - `goal`: String?
+        /// - `duration_weeks`: int?
+        /// - `deadline`: String? (ISO 8601)
+        /// - `current_weight`: double?
+        /// - `goal_weight`: double?
+        "plan_name": _planName,
+        "goal": selectedGoal,
+        "duration_weeks": selectedWeeks,
+        "deadline": selectedDeadline?.toIso8601String(),
+        "current_weight": selectedCurrentWeight,
+        "goal_weight": selectedGoalWeight,
+        "exercises": exercisesJson,
+      };
+
+      // For edit mode, include plan_id to update existing plan
+      if (_isEditMode) {
+        payload["plan_id"] = widget.existingPlan!.id;
+      }
+
       final response = await client.post(
         Uri.parse(baseUrl),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          /// BACKEND: `/auth/save-plan` payload contract (nullable fields allowed)
-          ///
-          /// Required:
-          /// - `plan_name`: String
-          /// - `exercises`: List<Map>
-          ///
-          /// Optional (can be null due to checkboxes in Step 2):
-          /// - `goal`: String?
-          /// - `duration_weeks`: int?
-          /// - `deadline`: String? (ISO 8601)
-          /// - `current_weight`: double?
-          /// - `goal_weight`: double?
-          "plan_name": "My Custom Workout",
-          "goal": selectedGoal,
-          "duration_weeks": selectedWeeks,
-          "deadline": selectedDeadline?.toIso8601String(),
-          "current_weight": selectedCurrentWeight,
-          "goal_weight": selectedGoalWeight,
-          "exercises": exercisesJson,
-        }),
+        body: jsonEncode(payload),
       );
-
-      // 6. Response Handling
-
-      // 6. Response Handling
       if (response.statusCode == 201) {
-        // 201 Created means the backend 'COMMIT' was successful.
-        // 201 Created means the backend 'COMMIT' was successful.
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Plan saved to your account!")),
         );
-        final name = PlanController.instance.generateNextPlanName();
+        
         final exercises = planStates
             .map(
               (s) => PlanExercise(
@@ -188,52 +276,60 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
               ),
             )
             .toList();
-        PlanController.instance.addNewPlan(
-          name: name,
-          goal: selectedGoal,
-          deadline: selectedDeadline,
-          durationWeeks: selectedWeeks,
-          currentWeight: selectedCurrentWeight,
-          goalWeight: selectedGoalWeight,
-          exercises: exercises,
-          setAsCurrent: true,
-        );
+        
+        if (_isEditMode) {
+          // Update existing plan
+          final plan = widget.existingPlan!;
+          PlanController.instance.updatePlan(
+            plan,
+            goal: selectedGoal,
+            deadline: selectedDeadline,
+            durationWeeks: selectedWeeks,
+            currentWeight: selectedCurrentWeight,
+            goalWeight: selectedGoalWeight,
+            exercises: exercises,
+            currentWeightEnabledAtCreation: selectedCurrentWeight != null,
+          );
+        } else {
+          // Create new plan
+          final name = PlanController.instance.generateNextPlanName();
+          PlanController.instance.addNewPlan(
+            name: name,
+            goal: selectedGoal,
+            deadline: selectedDeadline,
+            durationWeeks: selectedWeeks,
+            currentWeight: selectedCurrentWeight,
+            goalWeight: selectedGoalWeight,
+            exercises: exercises,
+            setAsCurrent: true,
+            currentWeightEnabledAtCreation: selectedCurrentWeight != null,
+          );
+        }
+        
         // Go to Main Shell after successful save
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MainShell()),
         );
       } else {
-        // If statusCode is 401 (Unauthorized) or 500 (Server Error)
-        // If statusCode is 401 (Unauthorized) or 500 (Server Error)
         throw Exception("Server returned ${response.statusCode}");
       }
     } catch (e) {
-      // Catch network timeouts or connection refused errors
-      // Catch network timeouts or connection refused errors
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to save plan: $e")),
       );
     }
   }
+  void makePlanDialog(ExerciseCategory category) async {
 
-  // --------------------------------------------------------------------------
-  // UI LOGIC (Dialogs and Categories)
-  // --------------------------------------------------------------------------
-
-
-  // --------------------------------------------------------------------------
-  // UI LOGIC (Dialogs and Categories)
-  // --------------------------------------------------------------------------
-
-   void makePlanDialog(ExerciseCategory category) async {
     final existing = planStates
         .where((plan) => category.exercises.contains(plan.name))
         .toList();
 
     final List<DialogExerciseState>? result = await showDialog<List<DialogExerciseState>>(
       context: context,
-      builder: (context) {
+
+      builder: (context)  {
         return ExerciseSelectionDialog(
           category: category,
           existingPlans: existing,
@@ -243,68 +339,108 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
 
     if (result != null) {
       setState(() {
+        // Clear old plan for this category before adding the new one.
         planStates.removeWhere((item) => category.exercises.contains(item.name));
+
         if (result.isNotEmpty) {
-          planStates.addAll(result);
-          selectedCategories.add(category.name);
+          // Remove any potential duplicates before adding
+          for (final newExercise in result) {
+            planStates.removeWhere((existing) => existing.name == newExercise.name);
+          }
+          // If the user confirmed with at least one exercise, add the new plan.
+          planStates.addAll(result); // Add the new, updated plan
+          selectedCategories.add(category.name); // Mark the card as selected
         } else {
+          // If the user confirmed with an empty plan, mark the card as deselected.
           selectedCategories.remove(category.name);
         }
+
       });
     }
   }
 
-
+  /// The list of available exercise categories.
+  /// This data is used to populate the grid of [CategoryCard]s.
   final List<ExerciseCategory> categories = [
     ExerciseCategory(
         name: 'Cardio',
         icons: ['assets/icons/cardio1.svg', 'assets/icons/cardio2.svg'],
-        exercises: ['brisk walking', 'running', 'cycling', 'swimming', 'dancing', 'Jumping rope']),
+        exercises: ['brisk walking', 'running', 'cycling', 'swimming', 'dancing', 'Jumping rope'] ),
     ExerciseCategory(
         name: 'Yoga',
-        icons: ['assets/icons/yoga1.svg', 'assets/icons/yoga2.svg'],
-        exercises: ['Downward Facing Dog', 'Mountain Pose', 'Tree Pose', 'Warrior 2', 'Cat Pose and Cow Pose', 'Chair Pose', 'Cobra Pose', 'Child\'s Pose']),
+        icons: ['assets/icons/yoga1.svg','assets/icons/yoga2.svg'],
+        exercises: ['Downward Facing Dog', 'Mountain Pose', 'Tree Pose', 'Warrior 2','Cat Pose and Cow Pose', 'Chair Pose', 'Cobra Pose', 'Child\'s Pose'] ),
     ExerciseCategory(
         name: 'Strength Training',
-        icons: ['assets/icons/strength_training1.svg', 'assets/icons/strength_training2.svg'],
-        exercises: ['Squats', 'Deadlifts', 'Overhead Press', 'Push-ups', 'Pull-ups', 'Lunges', 'Rows', 'Kettlebell Swings', 'Planks', 'Burpees', 'Tricep Dips', 'Bicep Curls', 'Glute Bridges', 'Step-ups', 'Renegade Rows']),
+        icons: ['assets/icons/strength_training1.svg','assets/icons/strength_training2.svg'],
+        exercises: ['Squats', 'Deadlifts', 'Overhead Press', 'Push-ups', 'Pull-ups', 'Lunges', 'Rows', 'Kettlebell Swings', 'Planks', 'Burpees', 'Tricep Dips', 'Bicep Curls', 'Glute Bridges', 'Step-ups', 'Renegade Rows' ] ),
     ExerciseCategory(
-        name: 'Core Exercises',
-        icons: ['assets/icons/core_exercises1.svg', 'assets/icons/core_exercises2.svg'],
-        exercises: ['Plank', 'Crunches', 'Leg Raises', 'Glute Bridge', 'Bird Dog', 'Dead Bug', 'Russian Twists', 'Mountain Climbers', 'Hollow Hold', 'Side Plank with Rotation', 'Stability Ball Pike', 'Flutter Kicks', 'Bicycle Crunches', 'Reverse Crunches', 'Single-Arm Farmers Carry', 'Renegade Rows', 'Hanging Windshield Wipers']),
+      name: 'Core Exercises',
+        icons: ['assets/icons/core_exercises1.svg','assets/icons/core_exercises2.svg'],
+        exercises: ['Plank', 'Crunches', 'Leg Raises', 'Glute Bridge', 'Bird Dog', 'Dead Bug', 'Russian Twists', 'Mountain Climbers', 'Hollow Hold', 'Side Plank with Rotation', 'Stability Ball Pike', 'Flutter Kicks', 'Bicycle Crunches', 'Reverse Crunches', 'Single-Arm Farmers Carry', 'Renegade Rows', 'Hanging Windshield Wipers'] ),
     ExerciseCategory(
         name: 'Stretching',
-        icons: ['assets/icons/stretching1.svg', 'assets/icons/stretching2.svg'],
-        exercises: ['Hamstring stretch', 'Standing calf stretch', 'Shoulder stretch', 'Triceps stretch', 'Knee to chest', 'Quad stretch', 'Cat Cow', 'Child\'s Pose', 'Quadriceps stretch', 'Kneeling hip flexor stretch', 'Side stretch', 'Chest and shoulder stretch', 'Neck Stretch', 'Spinal Twist', 'Bicep stretch', 'Cobra']),
+        icons: ['assets/icons/stretching1.svg','assets/icons/stretching2.svg'],
+        exercises: ['Hamstring stretch', 'Standing calf stretch', 'Shoulder stretch', 'Triceps stretch', 'Knee to chest', 'Quad stretch', 'Cat Cow', 'Child\'s Pose', 'Quadriceps stretch', 'Kneeling hip flexor stretch', 'Side stretch', 'Chest and shoulder stretch', 'Neck Stretch', 'Spinal Twist', 'Bicep stretch', 'Cobra'] ),
     ExerciseCategory(
         name: 'Pilates',
-        icons: ['assets/icons/pilates3.svg', 'assets/icons/pilates2.svg'],
-        exercises: ['Pelvic Curl', 'Chest Lift', 'Chest Lift with Rotation', 'Spine Twist Supine', 'Single Leg Stretch', 'Roll Up', 'Roll-Like-a-Ball', 'Leg Circles']),
+        icons: ['assets/icons/pilates3.svg','assets/icons/pilates2.svg'],
+        exercises: ['Pelvic Curl', 'Chest Lift', 'Chest Lift with Rotation', 'Spine Twist Supine', 'Single Leg Stretch', 'Roll Up', 'Roll-Like-a-Ball', 'Leg Circles'] ),
   ];
 
-
+  /// A set that stores the names of categories that have at least one exercise selected.
+  /// This is used to visually indicate which categories are part of the current plan.
   final Set<String> selectedCategories = {};
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () {
+            // If editing from my_plans, go back to my_plans
+            // If creating new or from elsewhere, just pop
+            if (_isEditMode && widget.source == 'my_plans') {
+              Navigator.pop(context);
+            } else {
+              Navigator.pop(context);
+            }
+          },
+        ),
+        title: Text(
+          _isEditMode ? 'Edit Plan - Step 1' : 'Create Your Own Plan - Step 1',
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Create Your Own Plan',
-                style: TextStyle(
-                  fontSize: 28.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+              // Plan Name Button (Editable)
+              TextButton.icon(
+                onPressed: _showRenamePlanDialog,
+                icon: const Icon(Icons.edit),
+                label: Text(
+                  _planName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: ColorConstants.primaryColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
               Text(
-                'Step 1: Choose Exercise Categories',
+                _isEditMode ? 'Step 1: Edit Exercise Categories' : 'Step 1: Choose Exercise Categories',
                 style: TextStyle(
                   fontSize: 16.0,
                   color: Colors.grey[900],
@@ -327,8 +463,7 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
                     return CategoryCard(
                       category: category,
                       isSelected: isSelected,
-                      onTap: () => makePlanDialog(category),
-            
+                      onTap: () => makePlanDialog(category) ,
                     );
                   },
                 ),
