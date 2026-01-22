@@ -3,13 +3,13 @@ import '../widgets/category_card.dart';
 import '../widgets/exercise_selection_dialog.dart';
 import'../../data/models/dialog_exercise_state.dart';
 import'../../data/models/exercise_category.dart';
+import '../../../../app_styles/color_constants.dart';
 import '../../../common/main_shell.dart'; // To navigate after saving
 import 'plan_goal_screen.dart';
 
 import 'dart:convert'; // For jsonEncode
 import 'package:http/http.dart' as http; // For network requests
 import 'package:flutter/foundation.dart'; // For kIsWeb check
-import '../../../home_page/home_page.dart'; // To navigate after saving
 import 'package:http/browser_client.dart'; // Add this for Web support
 import 'dart:io'; //to use it on device
 import '../../../common/plan_controller.dart';
@@ -38,6 +38,9 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   /// Each [DialogExerciseState] contains the exercise name, duration, and selected days.
   /// This is the main data structure representing the user's workout plan.
   final List<DialogExerciseState> planStates  = [];
+
+  /// Plan name (editable at Step 1)
+  late String _planName;
 
   /// Step 2 (PlanGoalScreen) output.
   ///
@@ -71,6 +74,13 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   void initState() {
     super.initState();
     _isEditMode = widget.existingPlan != null;
+    
+    // Initialize plan name
+    if (_isEditMode) {
+      _planName = widget.existingPlan!.name;
+    } else {
+      _planName = PlanController.instance.generateNextPlanName();
+    }
     
     // If editing existing plan, load its data
     if (_isEditMode) {
@@ -108,6 +118,71 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
   ///
   /// When the dialog is closed, it updates the [planStates] with the new or
   /// modified exercise selections.
+
+  void _showRenamePlanDialog() async {
+    final controller = TextEditingController(text: _planName);
+    String? errorText;
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Rename Plan'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Enter plan name',
+                      border: const OutlineInputBorder(),
+                      errorText: errorText,
+                    ),
+                    onChanged: (value) {
+                      final trimmed = value.trim();
+                      if (trimmed.isEmpty) {
+                        setState(() => errorText = 'Plan name cannot be empty');
+                      } else {
+                        // Check for existing plan names (case-insensitive)
+                        final exists = PlanController.instance.plans.any(
+                          (p) => p.name.toLowerCase() == trimmed.toLowerCase() && p != widget.existingPlan
+                        );
+                        setState(() => errorText = exists ? 'Plan name already exists' : null);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: errorText == null && controller.text.trim().isNotEmpty
+                      ? () => Navigator.pop(context, controller.text.trim())
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ColorConstants.primaryColor,
+                  ),
+                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (newName != null && newName.isNotEmpty) {
+      setState(() {
+        _planName = newName;
+      });
+    }
+  }
 
   Future<void> savePlanToDatabase() async {
     if (planStates.isEmpty) {
@@ -154,30 +229,37 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         client = BrowserClient()..withCredentials = true;
       }
 
+      final payload = {
+        /// BACKEND: `/auth/save-plan` payload contract (nullable fields allowed)
+        ///
+        /// Required:
+        /// - `plan_name`: String
+        /// - `exercises`: List<Map>
+        ///
+        /// Optional (can be null due to checkboxes in Step 2):
+        /// - `goal`: String?
+        /// - `duration_weeks`: int?
+        /// - `deadline`: String? (ISO 8601)
+        /// - `current_weight`: double?
+        /// - `goal_weight`: double?
+        "plan_name": _planName,
+        "goal": selectedGoal,
+        "duration_weeks": selectedWeeks,
+        "deadline": selectedDeadline?.toIso8601String(),
+        "current_weight": selectedCurrentWeight,
+        "goal_weight": selectedGoalWeight,
+        "exercises": exercisesJson,
+      };
+
+      // For edit mode, include plan_id to update existing plan
+      if (_isEditMode) {
+        payload["plan_id"] = widget.existingPlan!.id;
+      }
+
       final response = await client.post(
         Uri.parse(baseUrl),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          /// BACKEND: `/auth/save-plan` payload contract (nullable fields allowed)
-          ///
-          /// Required:
-          /// - `plan_name`: String
-          /// - `exercises`: List<Map>
-          ///
-          /// Optional (can be null due to checkboxes in Step 2):
-          /// - `goal`: String?
-          /// - `duration_weeks`: int?
-          /// - `deadline`: String? (ISO 8601)
-          /// - `current_weight`: double?
-          /// - `goal_weight`: double?
-          "plan_name": "My Custom Workout",
-          "goal": selectedGoal,
-          "duration_weeks": selectedWeeks,
-          "deadline": selectedDeadline?.toIso8601String(),
-          "current_weight": selectedCurrentWeight,
-          "goal_weight": selectedGoalWeight,
-          "exercises": exercisesJson,
-        }),
+        body: jsonEncode(payload),
       );
       if (response.statusCode == 201) {
         if (!mounted) return;
@@ -261,6 +343,10 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         planStates.removeWhere((item) => category.exercises.contains(item.name));
 
         if (result.isNotEmpty) {
+          // Remove any potential duplicates before adding
+          for (final newExercise in result) {
+            planStates.removeWhere((existing) => existing.name == newExercise.name);
+          }
           // If the user confirmed with at least one exercise, add the new plan.
           planStates.addAll(result); // Add the new, updated plan
           selectedCategories.add(category.name); // Mark the card as selected
@@ -315,10 +401,18 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            // If editing from my_plans, go back to my_plans
+            // If creating new or from elsewhere, just pop
+            if (_isEditMode && widget.source == 'my_plans') {
+              Navigator.pop(context);
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: Text(
-          _isEditMode ? 'Edit Plan' : 'Create Your Own Plan',
+          _isEditMode ? 'Edit Plan - Step 1' : 'Create Your Own Plan - Step 1',
           style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ),
@@ -328,6 +422,23 @@ class CreatePlanScreenState extends State<CreatePlanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Plan Name Button (Editable)
+              TextButton.icon(
+                onPressed: _showRenamePlanDialog,
+                icon: const Icon(Icons.edit),
+                label: Text(
+                  _planName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: ColorConstants.primaryColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+              ),
+              const SizedBox(height: 20),
               Text(
                 _isEditMode ? 'Step 1: Edit Exercise Categories' : 'Step 1: Choose Exercise Categories',
                 style: TextStyle(

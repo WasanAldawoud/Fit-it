@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../app_styles/color_constants.dart';
 import '../../../../app_styles/custom_widgets.dart';
 
@@ -20,6 +21,10 @@ class _PlanGoalScreenState extends State<PlanGoalScreen> {
 
   final _currentWeightController = TextEditingController();
   final _goalWeightController = TextEditingController();
+
+  // Track if weights are auto-assigned for maintain weight
+  bool _currentWeightAutoAssigned = false;
+  bool _goalWeightAutoAssigned = false;
 
   final List<String> _goals = const [
     'Gain weight',
@@ -121,7 +126,27 @@ class _PlanGoalScreenState extends State<PlanGoalScreen> {
                                         child: Text(g, textAlign: TextAlign.center),
                                       ),
                                       selected: selected,
-                                      onSelected: (_) => setState(() => _goal = g),
+                                      onSelected: (_) {
+                                        setState(() {
+                                          _goal = g;
+                                          // Auto-assign weights for maintain weight
+                                          if (_goal == 'Maintain weight') {
+                                            if (_currentWeightEnabled && !_currentWeightAutoAssigned) {
+                                              final currentWeight = double.tryParse(_currentWeightController.text.trim());
+                                              if (currentWeight != null && !_goalWeightAutoAssigned) {
+                                                _goalWeightController.text = currentWeight.toStringAsFixed(1);
+                                                _goalWeightAutoAssigned = true;
+                                              }
+                                            } else if (_goalWeightEnabled && !_goalWeightAutoAssigned) {
+                                              final goalWeight = double.tryParse(_goalWeightController.text.trim());
+                                              if (goalWeight != null && !_currentWeightAutoAssigned) {
+                                                _currentWeightController.text = goalWeight.toStringAsFixed(1);
+                                                _currentWeightAutoAssigned = true;
+                                              }
+                                            }
+                                          }
+                                        });
+                                      },
                                       selectedColor: ColorConstants.primaryColor,
                                       labelStyle: TextStyle(
                                         color: selected ? Colors.white : Colors.black87,
@@ -256,6 +281,9 @@ class _PlanGoalScreenState extends State<PlanGoalScreen> {
                                 child: TextField(
                                   controller: _currentWeightController,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                                  ],
                                   decoration: const InputDecoration(hintText: 'e.g. 72.5'),
                                 ),
                               ),
@@ -329,27 +357,64 @@ class _PlanGoalScreenState extends State<PlanGoalScreen> {
                     child: CustomButton(
                       title: 'Save & Continue',
                       onTap: () {
-                        final currentWeight = double.tryParse(_currentWeightController.text.trim());
-                        final goalWeight = double.tryParse(_goalWeightController.text.trim());
+                        // Validation: Enforce non-null values for enabled checkboxes
+                        if (_goalEnabled && _goal.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please select a goal')),
+                          );
+                          return;
+                        }
 
-                        /// Step 2 result contract returned to Step 1 (CreatePlanScreen).
-                        ///
-                        /// Each setting has its own checkbox, so values can be null.
-                        /// This is intentional: null means "user disabled this field".
-                        ///
-                        /// Keys returned (types):
-                        /// - `goal`: String?
-                        /// - `deadline`: DateTime?
-                        /// - `durationWeeks`: int? (derived from deadline)
-                        /// - `currentWeight`: double?
-                        /// - `goalWeight`: double?
-                        ///
-                        /// BACKEND mapping (CreatePlanScreen -> /auth/save-plan):
-                        /// - goal -> `goal`
-                        /// - deadline -> `deadline` (ISO 8601 string)
-                        /// - durationWeeks -> `duration_weeks`
-                        /// - currentWeight -> `current_weight`
-                        /// - goalWeight -> `goal_weight`
+                        if (_deadlineEnabled && _deadline == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please select a deadline')),
+                          );
+                          return;
+                        }
+
+                        final currentWeight = double.tryParse(_currentWeightController.text.trim());
+                        if (_currentWeightEnabled && currentWeight == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please enter a valid current weight')),
+                          );
+                          return;
+                        }
+
+                        final goalWeight = double.tryParse(_goalWeightController.text.trim());
+                        if (_goalWeightEnabled && goalWeight == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please enter a valid goal weight')),
+                          );
+                          return;
+                        }
+
+                        // Validation: Check goal weight logic
+                        if (_currentWeightEnabled && _goalWeightEnabled) {
+                          if (_goal == 'Gain weight' && goalWeight != null && currentWeight != null) {
+                            if (goalWeight <= currentWeight) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Goal weight must be greater than current weight for gaining')),
+                              );
+                              return;
+                            }
+                          } else if (_goal == 'Lose weight' && goalWeight != null && currentWeight != null) {
+                            if (goalWeight >= currentWeight) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Goal weight must be less than current weight for losing')),
+                              );
+                              return;
+                            }
+                          } else if (_goal == 'Maintain weight' && goalWeight != null && currentWeight != null) {
+                            // For maintain, goal weight should equal current weight
+                            if (goalWeight != currentWeight) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('For maintaining weight, goal weight must equal current weight')),
+                              );
+                              return;
+                            }
+                          }
+                        }
+
                         Navigator.pop(context, {
                           'goal': _goalEnabled ? _goal : null,
                           'deadline': _deadlineEnabled ? _deadline : null,
