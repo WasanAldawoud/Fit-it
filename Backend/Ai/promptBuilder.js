@@ -5,204 +5,219 @@ import { safetyRules } from "./safetyRules.js";
  */
 function calculateAge(birthdate) {
   if (!birthdate) return null;
+
   const today = new Date();
   const birth = new Date(birthdate);
   let age = today.getFullYear() - birth.getFullYear();
+
   const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birth.getDate())
+  ) {
     age--;
   }
+
   return age;
 }
 
 /**
- * Build dynamic prompt based on conversation state
+ * Build dynamic AI prompt based on conversation state
  */
 export function buildPrompt(user, conversationState) {
   const age = calculateAge(user.birthdate);
-  const state = conversationState.state;
-  const gatheredInfo = conversationState.gatheredInfo;
+  const state = conversationState?.state || "welcome";
+  const gatheredInfo = conversationState?.gatheredInfo || {};
 
-  // Base user information
+  /* =============================
+     USER PROFILE
+  ============================== */
   const userInfo = `
 User Profile:
-- Age: ${age ? age + ' years old' : 'Not provided'}
-- Gender: ${user.gender || 'Not provided'}
-- Height: ${user.height} cm
-- Weight: ${user.weight} kg
-- Equipment: ${user.equipment ? "Yes" : "No"}
+- Age: ${age ? `${age} years old` : "Not provided"}
+- Gender: ${user.gender || "Not provided"}
+- Height: ${user.height || "Not provided"} cm
+- Weight: ${user.weight || "Not provided"} kg
+- Equipment Available: ${user.equipment ? "Yes" : "No"}
 `;
 
-  // Available exercises list
+  /* =============================
+     ALLOWED EXERCISES (STRICT)
+  ============================== */
   const exercisesList = `
-Available exercises (only suggest from this list):
-- Cardio: brisk walking, running, cycling, swimming, dancing, Jumping rope
-- Yoga: Downward Facing Dog, Mountain Pose, Tree Pose, Warrior 2, Cat Pose and Cow Pose, Chair Pose, Cobra Pose, Child's Pose
-- Strength Training: Squats, Deadlifts, Overhead Press, Push-ups, Pull-ups, Lunges, Rows, Kettlebell Swings, Planks, Burpees, Tricep Dips, Bicep Curls, Glute Bridges, Step-ups, Renegade Rows
-- Core Exercises: Plank, Crunches, Leg Raises, Glute Bridge, Bird Dog, Dead Bug, Russian Twists, Mountain Climbers, Hollow Hold, Side Plank with Rotation, Stability Ball Pike, Flutter Kicks, Bicycle Crunches, Reverse Crunches, Single-Arm Farmers Carry, Renegade Rows, Hanging Windshield Wipers
-- Stretching: Hamstring stretch, Standing calf stretch, Shoulder stretch, Triceps stretch, Knee to chest, Quad stretch, Cat Cow, Child's Pose, Quadriceps stretch, Kneeling hip flexor stretch, Side stretch, Chest and shoulder stretch, Neck Stretch, Spinal Twist, Bicep stretch, Cobra
-- Pilates: Pelvic Curl, Chest Lift, Chest Lift with Rotation, Spine Twist Supine, Single Leg Stretch, Roll Up, Roll-Like-a-Ball, Leg Circles
-- Cycling: Indoor cycling, Outdoor cycling, Stationary bike intervals
-- Swimming: Freestyle, Breaststroke, Backstroke, Water aerobics
+Available exercises (ONLY choose from this list — do NOT invent or rename):
+
+- Cardio:
+  brisk walking, running, cycling, swimming, dancing, jumping rope
+
+- Yoga:
+  Downward Facing Dog, Mountain Pose, Tree Pose, Warrior 2,
+  Cat Pose and Cow Pose, Chair Pose, Cobra Pose, Child's Pose
+
+- Strength Training:
+  Squats, Deadlifts, Overhead Press, Push-ups, Pull-ups, Lunges,
+  Rows, Kettlebell Swings, Planks, Burpees, Tricep Dips,
+  Bicep Curls, Glute Bridges, Step-ups, Renegade Rows
+
+- Core Exercises:
+  Plank, Crunches, Leg Raises, Glute Bridge, Bird Dog, Dead Bug,
+  Russian Twists, Mountain Climbers, Hollow Hold,
+  Side Plank with Rotation, Stability Ball Pike, Flutter Kicks,
+  Bicycle Crunches, Reverse Crunches, Single-Arm Farmers Carry,
+  Renegade Rows, Hanging Windshield Wipers
+
+- Stretching:
+  Hamstring stretch, Standing calf stretch, Shoulder stretch,
+  Triceps stretch, Knee to chest, Quad stretch, Cat Cow,
+  Child's Pose, Quadriceps stretch, Kneeling hip flexor stretch,
+  Side stretch, Chest and shoulder stretch, Neck Stretch,
+  Spinal Twist, Bicep stretch, Cobra
+
+- Pilates:
+  Pelvic Curl, Chest Lift, Chest Lift with Rotation,
+  Spine Twist Supine, Single Leg Stretch, Roll Up,
+  Roll-Like-a-Ball, Leg Circles
+
+- Cycling:
+  Indoor cycling, Outdoor cycling, Stationary bike intervals
+
+- Swimming:
+  Freestyle, Breaststroke, Backstroke, Water aerobics
 `;
 
-  // State-specific instructions
-  let stateInstructions = '';
+  let stateInstructions = "";
 
+  /* =============================
+     STATE HANDLING
+  ============================== */
   switch (state) {
-    case 'welcome':
+    case "welcome":
       stateInstructions = `
-CURRENT STATE: Welcome Message
+CURRENT STATE: Welcome
 
 Instructions:
-1. Greet the user warmly and introduce yourself as their AI fitness coach
-2. Explain that you'll help create a personalized workout plan
-3. Ask the user to provide the following information:
-   - Their fitness goal (e.g., weight loss, muscle gain, general fitness, endurance, flexibility)
-   - Their preferred workout style (e.g., Cardio, Yoga, Strength Training, Core Exercises, Stretching, Pilates, Cycling, Swimming, or a combination)
-   - How many days per week they can commit to working out
+1. Greet the user warmly as their AI fitness coach
+2. Explain that you will create a personalized workout plan
+3. Ask ONLY for the following:
+   - Fitness goal (e.g., weight loss, muscle gain, general fitness)
+   - Preferred workout style(s)
+   - Number of days per week they can train
 
-Example welcome message:
-"Hello! 👋 I'm your AI fitness coach, here to help you achieve your fitness goals!
-
-To create the perfect workout plan for you, I need to know:
-1. **Your fitness goal** - What would you like to achieve? (e.g., weight loss, muscle gain, general fitness)
-2. **Your preferred workout style** - What type of exercises do you enjoy? (e.g., Cardio, Yoga, Strength Training, or a mix)
-3. **Your availability** - How many days per week can you work out?
-
-Please share this information, and I'll create a personalized plan just for you!"
-
-Keep it friendly, encouraging, and concise.
+Tone: Friendly, motivating, short
+Do NOT generate a workout plan yet.
 `;
       break;
 
-    case 'gathering_info':
-      const missingInfo = [];
-      if (!gatheredInfo.goal) missingInfo.push('fitness goal');
-      if (!gatheredInfo.workoutStyle) missingInfo.push('preferred workout style');
-      if (!gatheredInfo.days) missingInfo.push('available days per week');
+    case "gathering_info": {
+      const missing = [];
+      if (!gatheredInfo.goal) missing.push("fitness goal");
+      if (!gatheredInfo.workoutStyle) missing.push("preferred workout style");
+      if (!gatheredInfo.days) missing.push("available workout days");
 
       stateInstructions = `
 CURRENT STATE: Gathering Information
 
-Information collected so far:
-- Goal: ${gatheredInfo.goal || 'NOT PROVIDED'}
-- Workout Style: ${gatheredInfo.workoutStyle || 'NOT PROVIDED'}
-- Days per week: ${gatheredInfo.days || 'NOT PROVIDED'}
+Collected so far:
+- Goal: ${gatheredInfo.goal || "NOT PROVIDED"}
+- Workout Style: ${gatheredInfo.workoutStyle || "NOT PROVIDED"}
+- Days per week: ${gatheredInfo.days || "NOT PROVIDED"}
 
-Missing information: ${missingInfo.join(', ')}
+Missing:
+- ${missing.join(", ")}
 
 Instructions:
-1. Acknowledge what the user has provided
-2. Ask for the missing information in a friendly, conversational way
-3. If the user's response is unclear, ask clarifying questions
-4. Once ALL information is collected, confirm with the user and let them know you'll generate their plan
-
-Do NOT generate a plan yet. Only gather information.
+1. Acknowledge what the user already shared
+2. Ask ONLY for the missing information
+3. If unclear, politely ask for clarification
+4. Do NOT generate a workout plan yet
 `;
       break;
+    }
 
-    case 'generating_plan':
+    case "generating_plan":
       stateInstructions = `
 CURRENT STATE: Generating Workout Plan
 
-Collected Information:
+User Preferences:
 - Goal: ${gatheredInfo.goal}
 - Workout Style: ${gatheredInfo.workoutStyle}
 - Days per week: ${gatheredInfo.days}
 
 ${exercisesList}
 
-Instructions:
-1. Create a personalized weekly workout plan based on the user's goal, preferred workout style, and available days
-2. Select 1-2 exercise types from the available list that match their workout style preference
-3. Distribute exercises across their available days
-4. Consider their age (${age || 'unknown'}) and gender (${user.gender || 'unknown'}) for appropriate intensity
-5. Use ONLY exercises from the available list above
-6. Format the plan clearly with:
-   - Day headers (e.g., **Monday:**, **Wednesday:**)
-   - Exercise category and name
-   - Duration for each exercise
-7. Keep exercises beginner-friendly if no equipment is available
-8. Include warm-up and cool-down recommendations
-9. After presenting the plan, ALWAYS end with:
-   "Would you like to approve this plan? Reply 'Yes' to save it, or 'No' to request changes."
+CRITICAL RULES:
+1. Use ONLY exercises from the allowed list
+2. Select exercises that match the user's workout style
+3. Exercises MUST be TIME-BASED ONLY
+   ✅ "30 mins", "45 seconds"
+   ❌ NO sets, reps, rounds
+4. Do NOT list warm-ups or cool-downs as exercises
+   → Put them ONLY under a **Tips** section
+5. Do NOT ask for a goal weight
+6. Do NOT mention calories, macros, or dieting
+7. Use clear day headers (e.g., **Monday:**)
 
-Example format:
+Plan Format:
 ## Your Personalized Workout Plan
-
-**Monday:**
-- Cardio: Brisk Walking - 30 mins
-- Stretching: Hamstring Stretch - 10 mins
-
-**Wednesday:**
-- Strength Training: Squats - 3 sets of 12 reps
-- Core Exercises: Plank - 3 sets of 30 seconds
-
-**Friday:**
-- Yoga: Downward Facing Dog - 5 mins
-- Stretching: Full Body Stretch - 15 mins
+Plan Name: [Creative Name based on goal]
 
 **Tips:**
-- Always warm up for 5-10 minutes before starting
-- Stay hydrated throughout your workout
-- Rest for at least one day between intense sessions
+- Warm up 5–10 minutes before training
+- Cool down and stretch after your session
+- Stay hydrated
 
-Would you like to approve this plan? Reply 'Yes' to save it, or 'No' to request changes.
+**Monday:**
+- Cardio: Brisk walking – 30 mins
+- Stretching: Hamstring stretch – 10 mins
+
+**Wednesday:**
+- Strength Training: Squats – 45 seconds
+- Core Exercises: Plank – 30 seconds
+
+END EVERY PLAN WITH THIS EXACT QUESTION:
+"Would you like to approve this plan? Reply 'Yes' to save it, or 'No' to request changes."
 `;
       break;
 
-    case 'awaiting_approval':
+    case "awaiting_approval":
       stateInstructions = `
-CURRENT STATE: Awaiting Plan Approval
-
-The user has been presented with a workout plan and needs to approve or reject it.
+CURRENT STATE: Awaiting Approval
 
 Instructions:
-1. If the user says "Yes", "Approve", "Looks good", or similar positive response:
-   - Confirm that the plan will be saved
-   - Encourage them to start their fitness journey
-   - Offer to answer any questions about the exercises
+- If the user says "Yes", "Approve", or similar:
+  → Confirm the plan will be saved and motivate them
+- If the user says "No" or gives feedback:
+  → Ask what they want changed
+- If unclear:
+  → Ask them to reply clearly with Yes or No
 
-2. If the user says "No", "Change", "Modify", or provides feedback:
-   - Ask what specific changes they'd like
-   - Acknowledge their feedback
-   - Prepare to regenerate the plan with their modifications
-
-3. If the user's response is unclear:
-   - Politely ask them to confirm with "Yes" to approve or "No" to request changes
-
-Do NOT generate a new plan unless they explicitly request changes.
+Do NOT generate a new plan unless changes are requested.
 `;
       break;
 
-    case 'approved':
+    case "approved":
       stateInstructions = `
-CURRENT STATE: Plan Approved and Saved
-
-The user's workout plan has been saved to their account.
+CURRENT STATE: Plan Approved
 
 Instructions:
-1. Congratulate them on taking this step
-2. Provide motivational encouragement
-3. Remind them they can view their plan in the "My Plans" section
-4. Offer to answer questions about exercises or create additional plans
-5. Keep responses brief and encouraging
+1. Congratulate the user
+2. Encourage consistency
+3. Tell them they can view the plan in "My Plans"
+4. Offer help or future plans
 
-You can now engage in general fitness conversation or help with other requests.
+Keep the response short and positive.
 `;
       break;
 
-    case 'chat':
+    case "chat":
       stateInstructions = `
-CURRENT STATE: General Conversation
+CURRENT STATE: General Chat
 
 Instructions:
-1. Answer fitness-related questions
-2. Provide exercise tips and guidance
-3. Offer motivation and support
-4. If the user wants to create a new plan, guide them through the process again
-5. Stay within your role as a fitness assistant
+- Answer fitness-related questions
+- Give safe exercise guidance
+- Encourage consistency and motivation
+- If user wants a new plan, guide them back to the process
 
 ${exercisesList}
 `;
@@ -215,6 +230,9 @@ Engage in helpful fitness conversation while following all safety rules.
 `;
   }
 
+  /* =============================
+     FINAL PROMPT
+  ============================== */
   return `
 ${safetyRules}
 

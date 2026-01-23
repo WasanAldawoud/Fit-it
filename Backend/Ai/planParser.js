@@ -11,199 +11,285 @@
  */
 export function parsePlanFromResponse(aiResponse) {
   try {
-    // Check if response contains plan markers
+    if (!aiResponse || typeof aiResponse !== "string") return null;
+
+    const lowerResponse = aiResponse.toLowerCase();
+
+    // ✅ Strong plan detection
     const hasPlanMarkers =
-      aiResponse.toLowerCase().includes('workout plan') ||
-      aiResponse.toLowerCase().includes('weekly plan') ||
-      aiResponse.toLowerCase().includes('exercise plan') ||
-      aiResponse.toLowerCase().includes('your plan') ||
-      aiResponse.toLowerCase().includes('personalized plan');
-    
-    if (!hasPlanMarkers) {
-      return null; // Not a plan response
-    }
+      lowerResponse.includes("workout plan") ||
+      lowerResponse.includes("weekly plan") ||
+      lowerResponse.includes("exercise plan") ||
+      lowerResponse.includes("your plan") ||
+      lowerResponse.includes("personalized plan");
+
+    if (!hasPlanMarkers) return null;
 
     const exercises = [];
-    const lines = aiResponse.split('\n');
-    
+    const lines = aiResponse.split("\n");
+
     let currentCategory = null;
     let currentDay = null;
+    let extractedPlanName = "AI Generated Workout Plan";
 
-    // Exercise categories from the system
+    /* -----------------------------
+       Allowed Categories (STRICT)
+    ------------------------------ */
     const categories = [
-      'cardio', 'yoga', 'strength training', 'core exercises', 
-      'stretching', 'pilates', 'cycling', 'swimming'
+      "cardio",
+      "yoga",
+      "strength training",
+      "core exercises",
+      "stretching",
+      "pilates",
+      "cycling",
+      "swimming",
     ];
 
-    // Days of the week
-    const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const daysOfWeek = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
 
     for (let line of lines) {
-      const lowerLine = line.toLowerCase().trim();
-      
-      // Skip empty lines
+      const trimmed = line.trim();
+      const lowerLine = trimmed.toLowerCase();
+
       if (!lowerLine) continue;
 
-      // Detect category headers
-      const detectedCategory = categories.find(cat => lowerLine.includes(cat));
+      /* -----------------------------
+         Extract Plan Name
+      ------------------------------ */
+      if (lowerLine.includes("plan name:")) {
+        extractedPlanName = line.substring(line.toLowerCase().indexOf("plan name:") + 10).trim().replace(/[*_#"]/g, "");
+        continue;
+      }
+
+      /* -----------------------------
+         Stop parsing on tips / notes
+      ------------------------------ */
+      if (
+        lowerLine.includes("tips:") ||
+        lowerLine.includes("notes:") ||
+        lowerLine.includes("recommendations:")
+      ) {
+        currentCategory = null;
+        continue;
+      }
+
+      /* -----------------------------
+         Detect category headers
+      ------------------------------ */
+      const detectedCategory = categories.find((cat) =>
+        lowerLine.includes(cat),
+      );
+
       if (detectedCategory) {
-        currentCategory = detectedCategory.charAt(0).toUpperCase() + detectedCategory.slice(1);
+        currentCategory =
+          detectedCategory.charAt(0).toUpperCase() +
+          detectedCategory.slice(1);
         continue;
       }
 
-      // Detect day headers (e.g., "Monday:", "Day 1:", "Week 1 - Monday")
-      const detectedDay = daysOfWeek.find(day => lowerLine.includes(day));
+      /* -----------------------------
+         Detect day headers
+      ------------------------------ */
+      const detectedDay = daysOfWeek.find((day) =>
+        lowerLine.includes(day),
+      );
+
       if (detectedDay) {
-        currentDay = detectedDay.charAt(0).toUpperCase() + detectedDay.slice(1);
+        currentDay =
+          detectedDay.charAt(0).toUpperCase() +
+          detectedDay.slice(1);
         continue;
       }
 
-      // Extract exercise details (looking for bullet points or numbered lists)
-      if ((lowerLine.startsWith('-') || lowerLine.startsWith('•') || /^\d+\./.test(lowerLine)) && currentCategory) {
-        // Remove bullet points and numbers
-        let exerciseLine = line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '').trim();
-        
-        // Extract exercise name and duration
-        const durationMatch = exerciseLine.match(/(\d+)\s*(min|mins|minutes|seconds|secs|reps|sets)/i);
-        let duration = durationMatch ? `${durationMatch[1]} ${durationMatch[2].toLowerCase()}` : '30 mins';
-        
-        // Extract exercise name (text before duration or parentheses)
-        let exerciseName = exerciseLine
-          .replace(/\(.*?\)/g, '') // Remove parentheses content
-          .replace(/\d+\s*(min|mins|minutes|seconds|secs|reps|sets).*/i, '') // Remove duration
-          .replace(/[-–—:]/g, '') // Remove separators
-          .trim();
+      /* -----------------------------
+         Detect exercise lines
+      ------------------------------ */
+      const isBullet =
+        lowerLine.startsWith("-") ||
+        lowerLine.startsWith("•") ||
+        /^\d+\./.test(lowerLine);
 
-        if (exerciseName && exerciseName.length > 2) {
-          // Check if this exercise already exists
-          const existingExercise = exercises.find(
-            ex => ex.name.toLowerCase() === exerciseName.toLowerCase() && ex.category === currentCategory
-          );
+      if (!isBullet || !currentCategory) continue;
 
-          if (existingExercise) {
-            // Add day to existing exercise
-            if (currentDay && !existingExercise.days.includes(currentDay)) {
-              existingExercise.days.push(currentDay);
-            }
-          } else {
-            // Create new exercise entry
-            exercises.push({
-              category: currentCategory,
-              name: exerciseName,
-              duration: duration,
-              days: currentDay ? [currentDay] : []
-            });
-          }
+      let exerciseLine = trimmed
+        .replace(/^[-•]\s*/, "")
+        .replace(/^\d+\.\s*/, "")
+        .trim();
+
+      /* -----------------------------
+         Duration (TIME ONLY)
+      ------------------------------ */
+      const durationMatch = exerciseLine.match(
+        /(\d+)\s*(min|mins|minutes|sec|secs|seconds|hr|hrs|hours)/i,
+      );
+
+      const duration = durationMatch
+        ? durationMatch[0].toLowerCase()
+        : "30 mins";
+
+      /* -----------------------------
+         Clean exercise name
+      ------------------------------ */
+      let exerciseName = exerciseLine
+        .replace(/\(.*?\)/g, "")
+        .replace(durationMatch ? durationMatch[0] : "", "")
+        .replace(/\d+\s*(sets|reps|rounds)/gi, "") // 🛡️ safety
+        .replace(/[-–—:]/g, "")
+        .trim();
+
+      if (exerciseName.length < 3) continue;
+
+      /* -----------------------------
+         Merge duplicates safely
+      ------------------------------ */
+      const existing = exercises.find(
+        (ex) =>
+          ex.name.toLowerCase() === exerciseName.toLowerCase() &&
+          ex.category === currentCategory &&
+          ex.duration === duration,
+      );
+
+      if (existing) {
+        if (currentDay && !existing.days.includes(currentDay)) {
+          existing.days.push(currentDay);
         }
+      } else {
+        exercises.push({
+          category: currentCategory,
+          name: exerciseName,
+          duration,
+          days: currentDay ? [currentDay] : [],
+        });
       }
     }
 
-    // If no exercises found, return null
-    if (exercises.length === 0) {
-      return null;
-    }
+    if (exercises.length === 0) return null;
 
-    // If no days were assigned, distribute exercises across available days
-    const exercisesWithoutDays = exercises.filter(ex => ex.days.length === 0);
-    if (exercisesWithoutDays.length > 0) {
-      // Assign to Monday, Wednesday, Friday by default
-      const defaultDays = ['Monday', 'Wednesday', 'Friday'];
-      exercisesWithoutDays.forEach((ex, index) => {
+    /* -----------------------------
+       Assign default days if missing
+    ------------------------------ */
+    const defaultDays = ["Monday", "Wednesday", "Friday"];
+    exercises.forEach((ex, index) => {
+      if (!ex.days.length) {
         ex.days = [defaultDays[index % defaultDays.length]];
-      });
-    }
+      }
+    });
 
     return {
-      exercises: exercises,
-      planName: 'AI Generated Workout Plan',
-      isValid: true
+      planName: extractedPlanName,
+      exercises,
+      isValid: true,
     };
-
   } catch (error) {
-    console.error('Error parsing plan:', error);
+    console.error("Error parsing plan:", error);
     return null;
   }
 }
 
-/**
- * Validates if a plan has the minimum required structure
- * @param {Object} plan - Parsed plan object
- * @returns {boolean} True if valid
- */
+/* =============================
+   VALIDATION
+============================= */
+
 export function validatePlan(plan) {
-  if (!plan || !plan.exercises || !Array.isArray(plan.exercises)) {
-    return false;
-  }
+  if (!plan || !Array.isArray(plan.exercises)) return false;
+  if (plan.exercises.length === 0) return false;
 
-  if (plan.exercises.length === 0) {
-    return false;
-  }
-
-  // Check each exercise has required fields
-  for (const exercise of plan.exercises) {
-    if (!exercise.category || !exercise.name || !exercise.duration || !exercise.days) {
-      return false;
-    }
-    if (!Array.isArray(exercise.days) || exercise.days.length === 0) {
-      return false;
-    }
-  }
-
-  return true;
+  return plan.exercises.every(
+    (ex) =>
+      ex.category &&
+      ex.name &&
+      ex.duration &&
+      Array.isArray(ex.days) &&
+      ex.days.length > 0,
+  );
 }
 
-/**
- * Formats plan for database insertion
- * @param {Object} plan - Parsed plan object
- * @param {Object} userInfo - User information (goal, duration, weights)
- * @returns {Object} Database-ready plan object
- */
+/* =============================
+   DATABASE FORMAT
+============================= */
+
 export function formatPlanForDatabase(plan, userInfo = {}) {
   return {
-    plan_name: plan.planName || 'AI Generated Workout Plan',
-    exercises: plan.exercises.map(ex => ({
+    plan_name: plan.planName || "AI Generated Workout Plan",
+    exercises: plan.exercises.map((ex) => ({
       category: ex.category,
       name: ex.name,
       duration: ex.duration,
-      days: ex.days
+      days: ex.days,
     })),
     goal: userInfo.goal || null,
     duration_weeks: userInfo.duration_weeks || null,
     deadline: userInfo.deadline || null,
     current_weight: userInfo.current_weight || null,
-    goal_weight: userInfo.goal_weight || null
+    goal_weight: userInfo.goal_weight || null,
   };
 }
 
-/**
- * Extracts goal and duration information from conversation
- * @param {string} text - User's message or AI response
- * @returns {Object} Extracted information
- */
+/* =============================
+   METADATA EXTRACTION
+============================= */
+
 export function extractPlanMetadata(text) {
   const metadata = {};
-  
-  // Extract goal
-  const goalKeywords = {
-    'weight loss': ['lose weight', 'weight loss', 'fat loss', 'slim down', 'get lean'],
-    'muscle gain': ['build muscle', 'muscle gain', 'bulk up', 'get bigger', 'gain mass'],
-    'general fitness': ['stay fit', 'general fitness', 'maintain fitness', 'stay healthy', 'get fit'],
-    'endurance': ['endurance', 'stamina', 'cardio fitness'],
-    'flexibility': ['flexibility', 'stretching', 'mobility']
-  };
+  if (!text) return metadata;
 
   const lowerText = text.toLowerCase();
+
+  const goalKeywords = {
+    "weight loss": [
+      "lose weight",
+      "weight loss",
+      "fat loss",
+      "slim down",
+      "get lean",
+    ],
+    "muscle gain": [
+      "build muscle",
+      "muscle gain",
+      "bulk up",
+      "gain mass",
+    ],
+    "maintain weight": [
+      "maintain weight",
+      "keep weight",
+      "stay same weight",
+    ],
+    "general fitness": [
+      "general fitness",
+      "stay fit",
+      "stay healthy",
+      "get fit",
+    ],
+    endurance: ["endurance", "stamina", "cardio fitness"],
+    flexibility: ["flexibility", "mobility", "stretching"],
+  };
+
   for (const [goal, keywords] of Object.entries(goalKeywords)) {
-    if (keywords.some(keyword => lowerText.includes(keyword))) {
+    if (keywords.some((k) => lowerText.includes(k))) {
       metadata.goal = goal;
       break;
     }
   }
 
-  // Extract duration in weeks
   const durationMatch = text.match(/(\d+)\s*(week|weeks|wk|wks)/i);
   if (durationMatch) {
-    metadata.duration_weeks = parseInt(durationMatch[1]);
+    metadata.duration_weeks = parseInt(durationMatch[1], 10);
+  }
+
+  const weightMatch = text.match(
+    /(?:goal|target|reach)\s*:?\s*(\d+(\.\d+)?)\s*(kg|kgs|lb|lbs)/i,
+  );
+  if (weightMatch) {
+    metadata.goal_weight = parseFloat(weightMatch[1]);
   }
 
   return metadata;

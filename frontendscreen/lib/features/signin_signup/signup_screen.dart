@@ -30,10 +30,9 @@ class _SignupPageState extends State<SignupPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  final genderController = TextEditingController();
-  final birthDateController = TextEditingController();
-  final weightController = TextEditingController();
-  final heightController = TextEditingController();
+  final TextEditingController _birthdateController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
 
   bool isPasswordVisible = false;
 
@@ -46,9 +45,7 @@ class _SignupPageState extends State<SignupPage> {
   String? birthDateError;
   String? weightError;
   String? heightError;
-  String? selectedGender;
-
-  DateTime? selectedBirthDate;
+  String? _selectedGender;
 
   bool isFormValid = false;
   bool startedTyping = false; // Prevents showing errors until the user actually starts typing
@@ -76,12 +73,24 @@ class _SignupPageState extends State<SignupPage> {
           ? "Passwords do not match"
           : null;
 
+      genderError = _selectedGender == null ? 'Required' : null;
+
+      birthDateError = _birthdateController.text.isEmpty ? 'Required' : null;
+
+      weightError = _weightController.text.isEmpty ? 'Required' : null;
+
+      heightError = _heightController.text.isEmpty ? 'Required' : null;
+
       // The form is only valid if all error strings are null
       isFormValid =
           usernameError == null &&
           emailError == null &&
           passwordError == null &&
-          confirmPasswordError == null;
+          confirmPasswordError == null &&
+          genderError == null &&
+          birthDateError == null &&
+          weightError == null &&
+          heightError == null;
     });
   }
 
@@ -120,10 +129,10 @@ class _SignupPageState extends State<SignupPage> {
           "username": usernameController.text.trim().toLowerCase(),
           "email": emailController.text.trim(),
           "password": passwordController.text.trim(),
-          "gender": selectedGender,
-          "birthdate": selectedBirthDate.toString(),
-          "weight": weightController.text,
-          "height": heightController.text,
+          "gender": _selectedGender,
+          "birthdate": _birthdateController.text,
+          "weight": _weightController.text,
+          "height": _heightController.text,
         }),
       );
 
@@ -247,86 +256,134 @@ class _SignupPageState extends State<SignupPage> {
                       _buildErrorText(confirmPasswordError!),
                     const SizedBox(height: 30),
 
-                    // Gender Dropdown: Values must match your PostgreSQL 'gender' constraints
-                    DropdownButtonFormField<String>(
-                      value: selectedGender,
-                      dropdownColor: Colors.white,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        prefixIcon: Icon(Icons.person_outline),
-                        hintText: "Gender",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(30)),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // --- GENDER DROPDOWN ---
+                        Expanded(
+                          child: Column(
+                            children: [
+                              DropdownButtonFormField<String>(
+                                value: _selectedGender,
+                                decoration: InputDecoration(
+                                  labelText: 'Gender',
+                                  prefixIcon: const Icon(Icons.person_outline),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                ),
+                                items: ['male', 'female'].map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value[0].toUpperCase() + value.substring(1)), // Capitalize display
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedGender = val;
+                                    validateForm();
+                                  });
+                                },
+                              ),
+                              if (startedTyping && genderError != null)
+                                _buildErrorText(genderError!),
+                            ],
+                          ),
                         ),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: "Male", child: Text("Male")),
-                        DropdownMenuItem(value: "Female", child: Text("Female")),
-                        DropdownMenuItem(value: "Other", child: Text("Other")),
+
+                        const SizedBox(width: 16), // Space between fields
+
+                        // --- BIRTHDAY PICKER ---
+                        Expanded(
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                controller: _birthdateController,
+                                readOnly: true, // Prevents manual typing
+                                decoration: InputDecoration(
+                                  labelText: 'Birthday',
+                                  prefixIcon: const Icon(Icons.calendar_today),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                ),
+                                onTap: () async {
+                                  DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime(2000),
+                                    firstDate: DateTime(1900),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (pickedDate != null) {
+                                    setState(() {
+                                      // Formats to YYYY-MM-DD for the backend
+                                      _birthdateController.text = "${pickedDate.toLocal()}".split(' ')[0];
+                                      validateForm();
+                                    });
+                                  }
+                                },
+                              ),
+                              if (startedTyping && birthDateError != null)
+                                _buildErrorText(birthDateError!),
+                            ],
+                          ),
+                        ),
                       ],
-                      onChanged: (value) {
-                        setState(() {
-                          selectedGender = value;
-                          validateForm();
-                        });
-                      },
                     ),
-                    if (startedTyping && genderError != null)
-                      _buildErrorText(genderError!),
-                    const SizedBox(height: 20),
 
-                    // Birth Date Picker
-                    CustomTextField(
-                      controller: birthDateController,
-                      hintText: "Birth Date",
-                      icon: Icons.cake,
-                      fieldKey: const ValueKey('signup_birthdate'),
-                      readOnly: true,
-                      onTap: () async {
-                        FocusScope.of(context).unfocus(); // Close keyboard
-                        DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime(2000),
-                          firstDate: DateTime(1980),
-                          lastDate: DateTime.now(),
-                        );
+                    const SizedBox(height: 16),
 
-                        if (picked != null) {
-                          setState(() {
-                            selectedBirthDate = picked;
-                            // Format: YYYY-MM-DD (matches PostgreSQL date format)
-                            birthDateController.text =
-                                "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                            validateForm();
-                          });
-                        }
-                      },
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // --- WEIGHT FIELD ---
+                        Expanded(
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                controller: _weightController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Weight (kg)',
+                                  prefixIcon: const Icon(Icons.monitor_weight_outlined),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                ),
+                                onChanged: (_) => validateForm(),
+                              ),
+                              if (startedTyping && weightError != null)
+                                _buildErrorText(weightError!),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 16), // Space between fields
+
+                        // --- HEIGHT FIELD ---
+                        Expanded(
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                controller: _heightController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Height (cm)',
+                                  prefixIcon: const Icon(Icons.height),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                ),
+                                onChanged: (_) => validateForm(),
+                              ),
+                              if (startedTyping && heightError != null)
+                                _buildErrorText(heightError!),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    if (startedTyping && birthDateError != null)
-                      _buildErrorText(birthDateError!),
-                    const SizedBox(height: 20),
 
-                    // Weight Input
-                    CustomTextField(
-                      controller: weightController,
-                      hintText: "Weight (kg)",
-                      icon: Icons.monitor_weight,
-                      fieldKey: const ValueKey('signup_weight'),
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => validateForm(),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Height Input
-                    CustomTextField(
-                      controller: heightController,
-                      hintText: "Height (cm)",
-                      icon: Icons.height,
-                      fieldKey: const ValueKey('signup_height'),
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => validateForm(),
-                    ),
                     const SizedBox(height: 30),
 
                     // Create Account Button

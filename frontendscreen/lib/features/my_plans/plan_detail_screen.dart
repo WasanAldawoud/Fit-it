@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../app_styles/color_constants.dart';
 import '../common/plan_controller.dart';
+import '../common/app_nav_bar.dart';
+import '../common/main_shell.dart';
+import '../plan_creation/presentation/screens/create_plan_screen.dart';
 import '../plan_creation/presentation/widgets/duration_picker.dart';
 import '../plan_creation/presentation/widgets/day_selection_dialog.dart';
 
@@ -86,6 +89,24 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
     }
   }
 
+  Future<void> _modifyPlan() async {
+    // Navigate to CreatePlanScreen with existing plan for editing
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreatePlanScreen(
+          existingPlan: widget.plan,
+          source: 'plan_details',
+        ),
+      ),
+    );
+
+    // After returning from edit, refresh the UI
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,10 +118,26 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          widget.plan.name,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Icon(Icons.fitness_center, color: Colors.white, size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.plan.name,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune, color: Colors.white),
+            onPressed: _modifyPlan,
+            tooltip: 'Edit plan',
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -109,69 +146,106 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
             children: [
               // Plan Info Header
               Container(
-                color: ColorConstants.primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [ColorConstants.primaryColor, ColorConstants.primaryColor.withOpacity(0.8)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: ColorConstants.accentColor,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(25),
                           ),
                           child: Text(
                             widget.plan.goal ?? 'No Goal',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 12,
+                              fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                         const Spacer(),
                         if (widget.plan.deadline != null)
-                          Text(
-                            'Deadline: ${_formatDate(widget.plan.deadline!)}',
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Text(
+                              'Deadline: ${_formatDate(widget.plan.deadline!)}',
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                            ),
                           ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Exercises: ${widget.plan.exercises.length}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.list_alt, color: Colors.white70, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Exercises: ${widget.plan.exercises.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
 
+              // Divider
+              Container(
+                height: 2,
+                color: Colors.white.withOpacity(0.3),
+              ),
+
               // Exercises List
               Container(
-                color: Colors.white,
+                color: Colors.grey[50],
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Exercises',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.sports_gymnastics, color: ColorConstants.primaryColor, size: 24),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Exercises',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       if (widget.plan.exercises.isEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          padding: const EdgeInsets.symmetric(vertical: 60),
                           alignment: Alignment.center,
-                          child: Text(
-                            'No exercises yet',
-                            style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                          child: Column(
+                            children: [
+                              Icon(Icons.fitness_center, size: 48, color: Colors.grey[400]),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No exercises yet',
+                                style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                              ),
+                            ],
                           ),
                         )
                       else
@@ -179,58 +253,57 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: widget.plan.exercises.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             final exercise = widget.plan.exercises[index];
-                            return Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: ColorConstants.primaryColor.withOpacity(0.3),
-                                  width: 1.5,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
+                            return Card(
+                              elevation: 4,
+                              shadowColor: ColorConstants.primaryColor.withOpacity(0.2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
                               child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                                 leading: CircleAvatar(
-                                  backgroundColor: ColorConstants.primaryColor.withOpacity(0.15),
+                                  radius: 24,
+                                  backgroundColor: ColorConstants.accentColor.withOpacity(0.2),
                                   child: Icon(
                                     Icons.fitness_center,
-                                    color: ColorConstants.primaryColor,
-                                    size: 20,
+                                    color: ColorConstants.accentColor,
+                                    size: 24,
                                   ),
                                 ),
                                 title: Text(
                                   exercise.name,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 15,
+                                    fontSize: 16,
                                     color: Colors.black87,
                                   ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
-                                        const SizedBox(width: 4),
+                                        Icon(Icons.schedule, size: 16, color: ColorConstants.primaryColor),
+                                        const SizedBox(width: 6),
                                         Text(
                                           '${exercise.duration.inMinutes} min',
-                                          style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                                          style: const TextStyle(color: Colors.black54, fontSize: 14),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 6),
                                     Row(
                                       children: [
-                                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                                        const SizedBox(width: 4),
+                                        Icon(Icons.calendar_today, size: 16, color: ColorConstants.primaryColor),
+                                        const SizedBox(width: 6),
                                         Expanded(
                                           child: Text(
                                             _formatDays(exercise.days),
-                                            style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                                            style: const TextStyle(color: Colors.black54, fontSize: 14),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -242,12 +315,12 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: Icon(Icons.edit, color: ColorConstants.primaryColor, size: 20),
+                                      icon: Icon(Icons.edit, color: ColorConstants.primaryColor, size: 22),
                                       onPressed: () => _editExercise(exercise, index),
                                       tooltip: 'Edit exercise',
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                      icon: const Icon(Icons.delete, color: Colors.red, size: 22),
                                       onPressed: () => _deleteExercise(index),
                                       tooltip: 'Delete exercise',
                                     ),
@@ -264,6 +337,14 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
               const SizedBox(height: 20),
             ],
           ),
+        ),
+      ),
+      bottomNavigationBar: AppNavBar(
+        currentIndex: 1,
+        onTap: (i) => Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainShell()),
+          (route) => false,
         ),
       ),
     );

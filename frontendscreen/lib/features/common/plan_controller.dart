@@ -1,4 +1,6 @@
 
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -126,8 +128,10 @@ class PlanController {
     String baseUrl;
     if (kIsWeb) {
       baseUrl = 'http://localhost:3000';
-    } else {
-      baseUrl = 'http://26.35.223.225:3000'; 
+    } else if(Platform.isAndroid) {
+      baseUrl = 'http://10.0.2.2:3000';
+    }else{
+      baseUrl = 'http://26.35.223.225:3000';
     }
     final String url = '$baseUrl/auth/get-plan';
 

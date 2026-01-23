@@ -205,171 +205,202 @@ class MyPlansScreenState extends State<MyPlansScreen> {
       builder: (context, currentPlan, _) {
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: ColorConstants.primaryColor,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black87),
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const MainShell()),
                 (route) => false,
               ),
             ),
-            title: const Text(
-              'My Plans',
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                Icon(Icons.list_alt, color: Colors.white, size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  'My Plans',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
             ),
             actions: [
               IconButton(
-                icon: Icon(Icons.add, color: ColorConstants.primaryColor),
+                icon: const Icon(Icons.add, color: Colors.white),
                 onPressed: _addNewPlanFlow,
               ),
             ],
           ),
-          body: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: PlanController.instance.plans.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final plan = PlanController.instance.plans[index];
-              final isDefault = currentPlan == plan;
-              final isDeadlineReached = plan.deadline != null && DateTime.now().isAfter(plan.deadline!);
+          body: Container(
+            color: Colors.grey[50],
+            child: ListView.separated(
+              padding: const EdgeInsets.all(20),
+              itemCount: PlanController.instance.plans.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemBuilder: (context, index) {
+                final plan = PlanController.instance.plans[index];
+                final isDefault = currentPlan == plan;
+                final isDeadlineReached = plan.deadline != null && DateTime.now().isAfter(plan.deadline!);
 
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha:0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: ColorConstants.primaryColor.withValues(alpha: 0.1),
-                      child: Icon(Icons.fitness_center, color: ColorConstants.primaryColor),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PlanDetailScreen(plan: plan),
-                            ),
-                          );
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    plan.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
+                return Card(
+                  elevation: 4,
+                  shadowColor: ColorConstants.primaryColor.withOpacity(0.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: ColorConstants.accentColor.withOpacity(0.2),
+                          child: Icon(Icons.fitness_center, color: ColorConstants.accentColor, size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PlanDetailScreen(plan: plan),
                                 ),
-                                if (isDefault)
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        plan.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 17,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isDefault)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: ColorConstants.accentColor,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Text(
+                                          'Active',
+                                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(Icons.flag, size: 14, color: ColorConstants.primaryColor),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Goal: ${plan.goal ?? '—'}',
+                                      style: const TextStyle(color: Colors.black54, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.calendar_today, size: 14, color: ColorConstants.primaryColor),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Deadline: ${plan.deadline == null ? '—' : _formatDate(plan.deadline!)}',
+                                      style: const TextStyle(color: Colors.black54, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.schedule, size: 14, color: ColorConstants.primaryColor),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '~${plan.durationWeeks ?? '—'} weeks',
+                                      style: const TextStyle(color: Colors.black54, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                                if (isDeadlineReached)
+                                  const SizedBox(height: 8),
+                                if (isDeadlineReached)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: ColorConstants.accentColor,
-                                      borderRadius: BorderRadius.circular(20),
+                                      color: Colors.red.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Text(
-                                      'Default',
-                                      style: TextStyle(color: Colors.white, fontSize: 12),
+                                    child: Text(
+                                      'Deadline reached: ${_formatDate(plan.deadline!)}',
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                               ],
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Goal: ${plan.goal ?? '—'} • Deadline: ${plan.deadline == null ? '—' : _formatDate(plan.deadline!)} • ~${plan.durationWeeks ?? '—'}w',
-                              style: const TextStyle(color: Colors.grey, fontSize: 13),
-                            ),
-                            if (isDeadlineReached)
-                              const SizedBox(height: 6),
-                            if (isDeadlineReached)
-                              Text(
-                                'Final Date Reached at ${_formatDate(plan.deadline!)}',
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.check_circle,
+                            color: isDefault ? ColorConstants.accentColor : Colors.grey,
+                            size: 24,
+                          ),
+                          onPressed: () => _selectDefault(plan),
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'rename') {
+                              _renamePlan(plan);
+                            } else if (value == 'delete') {
+                              _deletePlan(plan);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'rename',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_note, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Rename'),
+                                ],
                               ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
                           ],
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.check_circle,
-                        color: isDefault ? ColorConstants.accentColor : Colors.grey,
-                      ),
-                      onPressed: () => _selectDefault(plan),
-                    ),
-                    PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _modifyPlan(plan);
-                        } else if (value == 'rename') {
-                          _renamePlan(plan);
-                        } else if (value == 'delete') {
-                          _deletePlan(plan);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 18),
-                              SizedBox(width: 8),
-                              Text('Modify'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'rename',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_note, size: 18),
-                              SizedBox(width: 8),
-                              Text('Rename'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 18, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              );
-            },
+                  ),
+                );
+              },
+            ),
           ),
         );
       },

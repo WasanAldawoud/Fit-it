@@ -65,9 +65,9 @@ class _MyAppState extends State<MyApp> {
 
         if (fetchRes.statusCode == 200) {
           final data = jsonDecode(fetchRes.body);
-          if (data['plan'] != null) {
+          if (data is List && data.isNotEmpty) {
             // 3. Populate the PlanController so HomePage has data
-            PlanController.instance.syncFromBackend(data['plan']);
+            PlanController.instance.syncFromBackend(data[0]);
           }
         }
 

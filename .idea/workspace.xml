@@ -5,23 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5a4020a3-dcb1-40ba-b09f-8f5d17f6a81d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/frontendscreen/lib/features/home_page/utils/date_utils.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/choosing_screen/choosing_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/choosing_screen/choosing_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/common/plan_controller.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/common/plan_controller.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/home_page/home_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/home_page/home_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/my_plans/my_plans_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/my_plans/my_plans_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/create_plan_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/create_plan_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/plan_goal_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/plan_creation/presentation/screens/plan_goal_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/profile/profile_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/profile/profile_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/progress/progress.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/linux/flutter/generated_plugins.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/windows/flutter/generated_plugins.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/Ai_chat/chat_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/Ai_chat/chat_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontendscreen/lib/features/Ai_chat/chat_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontendscreen/lib/features/Ai_chat/chat_service.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,21 +17,24 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
+  <component name="ComposerSettings">
+    <execution />
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "loaiftaha"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;loaiftaha&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/WasanAldawoud/Fit-it",
-    "accountId": "475cf8b9-e36e-4caa-8aa0-1d6ad70b36ff"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/WasanAldawoud/Fit-it&quot;,
+    &quot;accountId&quot;: &quot;475cf8b9-e36e-4caa-8aa0-1d6ad70b36ff&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
 }</component>
@@ -54,23 +43,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Flutter.main.dart.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;LoaiSideFrontend&quot;,
-    &quot;io.flutter.reload.alreadyRun&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Lenovo/OneDrive/Desktop/My pro 1/Fit-it&quot;,
-    &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Flutter.main.dart.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "io.flutter.reload.alreadyRun": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Lenovo/OneDrive/Desktop/My pro 1/Fit-it",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "show.migrate.to.gradle.popup": "false"
   }
-}</component>
+}]]></component>
   <component name="RunManager">
     <configuration name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter">
       <option name="filePath" value="$PROJECT_DIR$/frontendscreen/lib/main.dart" />

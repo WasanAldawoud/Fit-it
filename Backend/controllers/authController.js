@@ -55,12 +55,24 @@ export const signUp = async (req, res) => {
         // This triggers if the serialization process fails.
       }
 
-      // 7. Success: Send 201 code
-      return res.status(201).json({
-        message: "User registered successfully",
-        user: user,
+      // Force session save to ensure cookie works immediately
+      req.session.save((err) => {
+        if (err) return res.status(500).json({ error: "Session save failed" });
+
+        // 7. Success: Send 201 code
+        return res.status(201).json({
+          message: "User registered successfully",
+          user: {
+            userId: user.userid || user.userId,
+            username: user.username,
+            email: user.email,
+            gender: user.gender,
+            birthdate: user.birthdate,
+            weight: user.weight,
+            height: user.height
+          },
+        });
       });
-      // 201 (Created) confirms the account is ready. Flutter can now redirect to the home screen.
     });
 
   } catch (err) {
@@ -96,17 +108,20 @@ export const signIn = (req, res, next) => {
         return res.status(500).json({ error: "Login failed after authentication" });
       }
 
-      console.log("✅ User logged in successfully:", user.username);
+      req.session.save((err) => {
+        if (err) return res.status(500).json({ error: "Session save failed" });
+        console.log("✅ User logged in successfully:", user.username);
 
-      // 4. Success: Send 200 code and user data
-      return res.status(200).json({
-        message: "User logged in successfully",
-        user: {
-          userId: user.userid || user.userId,
-          username: user.username,
-          email: user.email,
-        }
-        // We only send back the necessary data, not the password hash!
+        // 4. Success: Send 200 code and user data
+        return res.status(200).json({
+          message: "User logged in successfully",
+          user: {
+            userId: user.userid || user.userId,
+            username: user.username,
+            email: user.email,
+          }
+          // We only send back the necessary data, not the password hash!
+        });
       });
     });
   })(req, res, next); 
@@ -114,11 +129,11 @@ export const signIn = (req, res, next) => {
   // returns a function that needs to be called with the current request objects.
 };
 
-export const getProfile = (req, res) => {
+export const getProfile = async (req, res) => {
   if (req.user) {
     // req.user is only available if the user has a valid session cookie.
     // Passport automatically populates this via the 'deserializeUser' function.
-    res.status(200).json({
+    return res.status(200).json({
       user: {
         userId: req.user.userid || req.user.userId,
         username: req.user.username,
@@ -129,20 +144,43 @@ export const getProfile = (req, res) => {
         height: req.user.height || 0
       }
     });
-  } else {
-    // If there is no cookie or the session expired:
-    res.status(401).json({ error: "Not authenticated" });
   }
+
+  // Fallback: Allow fetching by userId query param (e.g., ?userId=123)
+  const userId = req.query.userId || req.body?.userId;
+  if (userId) {
+    try {
+      const result = await db.query("SELECT * FROM users WHERE userid = $1", [userId]);
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        return res.status(200).json({
+          user: {
+            userId: user.userid,
+            username: user.username,
+            email: user.email,
+            gender: user.gender,
+            birthdate: user.birthdate,
+            weight: user.weight || 0,
+            height: user.height || 0
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Get profile error:", err);
+    }
+  }
+
+  // If there is no cookie or the session expired:
+  res.status(401).json({ error: "Not authenticated" });
 };
 
 export const updateProfile = async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: "Not authenticated" });
-  // Prevents random people from trying to update data without being logged in.
-
   const { username, gender, birthdate, weight, height } = req.body;
-  const userId = req.user.userid || req.user.userId;
-  // We get the ID directly from the session (req.user), not from the request body.
-  // This is a security best practice: users can't edit someone else's ID.
+  
+  // Allow session OR explicit userId from body
+  const userId = req.user?.userid || req.user?.userId || req.body.userId;
+
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
   try {
     const result = await db.query(
@@ -185,3 +223,11 @@ export const googleCallback = (req, res) => {
   // This HTML is a "bridge." It detects the device type and sends the user to the right place.
 };
 
+export const logout = (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Logout failed" });
+    }
+    res.status(200).json({ message: "Logged out successfully" });
+  });
+};
