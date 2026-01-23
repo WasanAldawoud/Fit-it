@@ -2,6 +2,8 @@ import client from "./openaiClient.js";
 import { buildPrompt } from "./promptBuilder.js";
 import {
   getConversation,
+import {
+  getConversation,
   saveConversation,
   getConversationState,
   updateConversationState,
@@ -9,11 +11,16 @@ import {
   isInfoComplete,
   saveGeneratedPlan,
   getGeneratedPlan,
+  getGeneratedPlan,
 } from "./memoryStore.js";
 import {
   parsePlanFromResponse,
   validatePlan,
+import {
+  parsePlanFromResponse,
+  validatePlan,
   formatPlanForDatabase,
+  extractPlanMetadata,
   extractPlanMetadata,
 } from "./planParser.js";
 import db from "../config/db.js";
@@ -83,21 +90,18 @@ export async function generateFitnessChat(req, res) {
 
     // Input validation
     if (!message || !userProfile) {
-      return res.status(400).json({ error: "Missing required fields: message, userProfile" });
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Check if OpenAI client is available
     if (!client) {
       return res.status(503).json({
         error: "AI service is not configured. Please set OPENAI_API_KEY environment variable.",
       });
     }
 
-    // Get conversation history and state
     let history = getConversation(userId);
     let conversationState = getConversationState(userId);
 
-    // Add user message to history
     history.push({ role: "user", content: message });
 
     // ✅ Extract deadline/timeframe from the message and store it (if present)
@@ -113,17 +117,17 @@ export async function generateFitnessChat(req, res) {
     // Build dynamic prompt based on state
     const systemPrompt = buildPrompt(userProfile, conversationState);
 
-    // Call OpenAI API
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...history],
+      messages: [{ role: "system", content: systemPrompt }, ...history],
       temperature: 0.7,
+      max_tokens: 1000,
       max_tokens: 1000,
     });
 
     const aiMessage = response.choices[0].message.content;
 
-    // Add AI response to history
     history.push({ role: "assistant", content: aiMessage });
     saveConversation(userId, history);
 
@@ -139,6 +143,7 @@ export async function generateFitnessChat(req, res) {
       conversationState: postProcessResult.state,
       planGenerated: postProcessResult.planGenerated,
       awaitingApproval: postProcessResult.awaitingApproval,
+      awaitingApproval: postProcessResult.awaitingApproval,
     });
   } catch (error) {
     console.error("AI Error:", error);
@@ -146,14 +151,13 @@ export async function generateFitnessChat(req, res) {
   }
 }
 
-/**
- * Process user message and update conversation state
- */
+/* ======================================================
+   STATE MACHINE
+====================================================== */
 async function processUserMessage(userId, message, conversationState, userProfile) {
   const lowerMessage = message.toLowerCase().trim();
   const currentState = conversationState.state;
 
-  // Handle first message - transition to welcome
   if (conversationState.isFirstMessage) {
     conversationState.isFirstMessage = false;
     updateConversationState(userId, conversationState);
@@ -210,6 +214,7 @@ async function processUserMessage(userId, message, conversationState, userProfil
       });
     }
 
+
     return conversationState;
   }
 
@@ -241,6 +246,7 @@ async function postProcessResponse(userId, aiMessage, conversationState, userPro
   if (currentState === "generating_plan") {
     const parsedPlan = parsePlanFromResponse(aiMessage);
 
+
     if (parsedPlan && validatePlan(parsedPlan)) {
       const metadata = extractPlanMetadata(aiMessage);
       const gatheredInfo = conversationState.gatheredInfo || {};
@@ -259,22 +265,27 @@ async function postProcessResponse(userId, aiMessage, conversationState, userPro
         goal: gatheredInfo.goal || metadata.goal,
         duration_weeks,
         deadline: deadlineDate.toISOString(),
+        duration_weeks,
+        deadline: deadlineDate.toISOString(),
         current_weight: userProfile.weight,
         goal_weight: null,
       };
 
       saveGeneratedPlan(userId, planData);
 
+
       return {
         state: "awaiting_approval",
+        state: "awaiting_approval",
         planGenerated: true,
+        awaitingApproval: true,
         awaitingApproval: true,
       };
     }
   }
 
   return {
-    state: currentState,
+    state: conversationState.state,
     planGenerated: false,
     awaitingApproval: currentState === "awaiting_approval",
   };
@@ -357,6 +368,7 @@ async function savePlanToDatabase(userId, planData, userProfile) {
       deadline: planData.deadline || null,
       current_weight: userProfile.weight,
       goal_weight: planData.goal_weight,
+      goal_weight: planData.goal_weight,
     });
 
     await db.query("BEGIN");
@@ -375,7 +387,7 @@ async function savePlanToDatabase(userId, planData, userProfile) {
       ],
     );
 
-    const planId = planResult.rows[0].plan_id;
+    const planId = result.rows[0].plan_id;
 
     for (const exercise of dbPlan.exercises) {
       await db.query(
@@ -407,6 +419,7 @@ export async function approvePlan(req, res) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
+
     const userProfile = req.body.userProfile || {};
     const conversationState = getConversationState(userId);
 
@@ -421,6 +434,7 @@ export async function approvePlan(req, res) {
 
     const planId = await savePlanToDatabase(userId, plan, userProfile);
 
+    updateConversationState(userId, { state: "approved" });
     updateConversationState(userId, { state: "approved" });
 
     res.json({

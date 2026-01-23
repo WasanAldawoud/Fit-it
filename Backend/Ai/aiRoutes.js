@@ -3,7 +3,9 @@ import { generateFitnessChat, approvePlan } from "./aiController.js";
 
 const router = express.Router();
 
-// Middleware to ensure user is authenticated
+/* ======================================================
+   AUTH MIDDLEWARE
+====================================================== */
 const requireAuth = (req, res, next) => {
   if (req.user) {
     return next();

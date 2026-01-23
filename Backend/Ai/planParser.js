@@ -30,8 +30,17 @@ export function parsePlanFromResponse(aiResponse) {
 
     let currentCategory = null;
     let currentDay = null;
+    let extractedPlanName = "AI Generated Workout Plan";
 
     const categories = [
+      "cardio",
+      "yoga",
+      "strength training",
+      "core exercises",
+      "stretching",
+      "pilates",
+      "cycling",
+      "swimming",
       "cardio",
       "yoga",
       "strength training",
@@ -52,13 +61,17 @@ export function parsePlanFromResponse(aiResponse) {
 
       const detectedCategory = categories.find((cat) => lowerLine.includes(cat));
       if (detectedCategory) {
-        currentCategory = detectedCategory.charAt(0).toUpperCase() + detectedCategory.slice(1);
+        currentCategory =
+          detectedCategory.charAt(0).toUpperCase() +
+          detectedCategory.slice(1);
         continue;
       }
 
       const detectedDay = daysOfWeek.find((day) => lowerLine.includes(day));
       if (detectedDay) {
-        currentDay = detectedDay.charAt(0).toUpperCase() + detectedDay.slice(1);
+        currentDay =
+          detectedDay.charAt(0).toUpperCase() +
+          detectedDay.slice(1);
         continue;
       }
 
@@ -108,8 +121,8 @@ export function parsePlanFromResponse(aiResponse) {
       const defaultDays = ["Monday", "Wednesday", "Friday"];
       exercisesWithoutDays.forEach((ex, index) => {
         ex.days = [defaultDays[index % defaultDays.length]];
-      });
-    }
+      }
+    });
 
     return {
       exercises: exercises,
@@ -117,6 +130,7 @@ export function parsePlanFromResponse(aiResponse) {
       isValid: true,
     };
   } catch (error) {
+    console.error("Error parsing plan:", error);
     console.error("Error parsing plan:", error);
     return null;
   }
@@ -137,15 +151,19 @@ export function formatPlanForDatabase(plan, userInfo = {}) {
   return {
     plan_name: plan.planName || "AI Generated Workout Plan",
     exercises: plan.exercises.map((ex) => ({
+    plan_name: plan.planName || "AI Generated Workout Plan",
+    exercises: plan.exercises.map((ex) => ({
       category: ex.category,
       name: ex.name,
       duration: ex.duration,
+      days: ex.days,
       days: ex.days,
     })),
     goal: userInfo.goal || null,
     duration_weeks: userInfo.duration_weeks || null,
     deadline: userInfo.deadline || null,
     current_weight: userInfo.current_weight || null,
+    goal_weight: userInfo.goal_weight || null,
     goal_weight: userInfo.goal_weight || null,
   };
 }
@@ -171,7 +189,14 @@ export function extractPlanMetadata(text) {
 
   const durationMatch = text.match(/(\d+)\s*(week|weeks|wk|wks)/i);
   if (durationMatch) {
-    metadata.duration_weeks = parseInt(durationMatch[1]);
+    metadata.duration_weeks = parseInt(durationMatch[1], 10);
+  }
+
+  const weightMatch = text.match(
+    /(?:goal|target|reach)\s*:?\s*(\d+(\.\d+)?)\s*(kg|kgs|lb|lbs)/i,
+  );
+  if (weightMatch) {
+    metadata.goal_weight = parseFloat(weightMatch[1]);
   }
 
   return metadata;

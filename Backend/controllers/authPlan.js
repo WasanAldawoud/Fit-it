@@ -106,13 +106,14 @@ export const markExerciseComplete = async (req, res) => {
     try {
       // 1. Get exercise_id
       const exResult = await db.query(
-        `SELECT exercise_id FROM plan_exercises 
-         WHERE plan_id = $1 AND exercise_name = $2`,
-        [plan_id, exercise_name]
+        `SELECT pe.exercise_id FROM plan_exercises pe
+         JOIN user_plans up ON pe.plan_id = up.plan_id
+         WHERE pe.plan_id = $1 AND pe.exercise_name = $2 AND up.user_id = $3`,
+        [plan_id, exercise_name, userId]
       );
   
       if (exResult.rows.length === 0) {
-        return res.status(404).json({ error: "Exercise not found" });
+        return res.status(404).json({ error: "Exercise not found or unauthorized" });
       }
   
       const exerciseId = exResult.rows[0].exercise_id;

@@ -56,12 +56,24 @@ export const signUp = async (req, res) => {
         // This triggers if the serialization process fails.
       }
 
-      // 7. Success: Send 201 code
-      return res.status(201).json({
-        message: "User registered successfully",
-        user: user,
+      // Force session save to ensure cookie works immediately
+      req.session.save((err) => {
+        if (err) return res.status(500).json({ error: "Session save failed" });
+
+        // 7. Success: Send 201 code
+        return res.status(201).json({
+          message: "User registered successfully",
+          user: {
+            userId: user.userid || user.userId,
+            username: user.username,
+            email: user.email,
+            gender: user.gender,
+            birthdate: user.birthdate,
+            weight: user.weight,
+            height: user.height
+          },
+        });
       });
-      // 201 (Created) confirms the account is ready. Flutter can now redirect to the home screen.
     });
 
   } catch (err) {
@@ -97,17 +109,20 @@ export const signIn = (req, res, next) => {
         return res.status(500).json({ error: "Login failed after authentication" });
       }
 
-      console.log("✅ User logged in successfully:", user.username);
+      req.session.save((err) => {
+        if (err) return res.status(500).json({ error: "Session save failed" });
+        console.log("✅ User logged in successfully:", user.username);
 
-      // 4. Success: Send 200 code and user data
-      return res.status(200).json({
-        message: "User logged in successfully",
-        user: {
-          userId: user.userid || user.userId,
-          username: user.username,
-          email: user.email,
-        }
-        // We only send back the necessary data, not the password hash!
+        // 4. Success: Send 200 code and user data
+        return res.status(200).json({
+          message: "User logged in successfully",
+          user: {
+            userId: user.userid || user.userId,
+            username: user.username,
+            email: user.email,
+          }
+          // We only send back the necessary data, not the password hash!
+        });
       });
     });
   })(req, res, next); 
@@ -116,37 +131,35 @@ export const signIn = (req, res, next) => {
 };
 
 export const getProfile = (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({
-      error: "Not authenticated",
-      authenticated: false
+  if (req.user) {
+    // req.user is only available if the user has a valid session cookie.
+    // Passport automatically populates this via the 'deserializeUser' function.
+    res.status(200).json({
+      user: {
+        userId: req.user.userid || req.user.userId,
+        username: req.user.username,
+        email: req.user.email,
+        gender: req.user.gender,
+        birthdate: req.user.birthdate,
+        weight: req.user.weight || 0,
+        height: req.user.height || 0
+      }
     });
+  } else {
+    // If there is no cookie or the session expired:
+    res.status(401).json({ error: "Not authenticated" });
   }
-
-  res.status(200).json({
-    success: true,
-    user: {
-      userId: req.user.userid,
-      username: req.user.username,
-      email: req.user.email,
-      gender: req.user.gender,
-      birthdate: req.user.birthdate,
-      weight: parseFloat(req.user.weight) || 0,
-      height: parseFloat(req.user.height) || 0
-    }
-  });
 };
 
 
 
 export const updateProfile = async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: "Not authenticated" });
-  // Prevents random people from trying to update data without being logged in.
-
   const { username, gender, birthdate, weight, height } = req.body;
-  const userId = req.user.userid || req.user.userId;
-  // We get the ID directly from the session (req.user), not from the request body.
-  // This is a security best practice: users can't edit someone else's ID.
+  
+  // Allow session OR explicit userId from body
+  const userId = req.user?.userid || req.user?.userId || req.body.userId;
+
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
   try {
     const result = await db.query(
@@ -203,4 +216,5 @@ export const googleCallback = (req, res) => {
   `);
   // This HTML is a "bridge." It detects the device type and sends the user to the right place.
 };
+
 

@@ -5,25 +5,33 @@ import { safetyRules } from "./safetyRules.js";
  */
 function calculateAge(birthdate) {
   if (!birthdate) return null;
+
   const today = new Date();
   const birth = new Date(birthdate);
   let age = today.getFullYear() - birth.getFullYear();
+
   const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birth.getDate())
+  ) {
     age--;
   }
+
   return age;
 }
 
 /**
- * Build dynamic prompt based on conversation state
+ * Build dynamic AI prompt based on conversation state
  */
 export function buildPrompt(user, conversationState) {
   const age = calculateAge(user.birthdate);
   const state = conversationState.state;
   const gatheredInfo = conversationState.gatheredInfo || {};
 
-  // Base user information
+  /* =============================
+     USER PROFILE
+  ============================== */
   const userInfo = `
 User Profile:
 - Age: ${age ? age + " years old" : "Not provided"}
@@ -33,25 +41,59 @@ User Profile:
 - Equipment: ${user.equipment ? "Yes" : "No"}
 `;
 
-  // Available exercises list
+  /* =============================
+     ALLOWED EXERCISES (STRICT)
+  ============================== */
   const exercisesList = `
-Available exercises (only suggest from this list):
-- Cardio: brisk walking, running, cycling, swimming, dancing, Jumping rope
-- Yoga: Downward Facing Dog, Mountain Pose, Tree Pose, Warrior 2, Cat Pose and Cow Pose, Chair Pose, Cobra Pose, Child's Pose
-- Strength Training: Squats, Deadlifts, Overhead Press, Push-ups, Pull-ups, Lunges, Rows, Kettlebell Swings, Planks, Burpees, Tricep Dips, Bicep Curls, Glute Bridges, Step-ups, Renegade Rows
-- Core Exercises: Plank, Crunches, Leg Raises, Glute Bridge, Bird Dog, Dead Bug, Russian Twists, Mountain Climbers, Hollow Hold, Side Plank with Rotation, Stability Ball Pike, Flutter Kicks, Bicycle Crunches, Reverse Crunches, Single-Arm Farmers Carry, Renegade Rows, Hanging Windshield Wipers
-- Stretching: Hamstring stretch, Standing calf stretch, Shoulder stretch, Triceps stretch, Knee to chest, Quad stretch, Cat Cow, Child's Pose, Quadriceps stretch, Kneeling hip flexor stretch, Side stretch, Chest and shoulder stretch, Neck Stretch, Spinal Twist, Bicep stretch, Cobra
-- Pilates: Pelvic Curl, Chest Lift, Chest Lift with Rotation, Spine Twist Supine, Single Leg Stretch, Roll Up, Roll-Like-a-Ball, Leg Circles
-- Cycling: Indoor cycling, Outdoor cycling, Stationary bike intervals
-- Swimming: Freestyle, Breaststroke, Backstroke, Water aerobics
+Available exercises (ONLY choose from this list — do NOT invent or rename):
+
+- Cardio:
+  brisk walking, running, cycling, swimming, dancing, jumping rope
+
+- Yoga:
+  Downward Facing Dog, Mountain Pose, Tree Pose, Warrior 2,
+  Cat Pose and Cow Pose, Chair Pose, Cobra Pose, Child's Pose
+
+- Strength Training:
+  Squats, Deadlifts, Overhead Press, Push-ups, Pull-ups, Lunges,
+  Rows, Kettlebell Swings, Planks, Burpees, Tricep Dips,
+  Bicep Curls, Glute Bridges, Step-ups, Renegade Rows
+
+- Core Exercises:
+  Plank, Crunches, Leg Raises, Glute Bridge, Bird Dog, Dead Bug,
+  Russian Twists, Mountain Climbers, Hollow Hold,
+  Side Plank with Rotation, Stability Ball Pike, Flutter Kicks,
+  Bicycle Crunches, Reverse Crunches, Single-Arm Farmers Carry,
+  Renegade Rows, Hanging Windshield Wipers
+
+- Stretching:
+  Hamstring stretch, Standing calf stretch, Shoulder stretch,
+  Triceps stretch, Knee to chest, Quad stretch, Cat Cow,
+  Child's Pose, Quadriceps stretch, Kneeling hip flexor stretch,
+  Side stretch, Chest and shoulder stretch, Neck Stretch,
+  Spinal Twist, Bicep stretch, Cobra
+
+- Pilates:
+  Pelvic Curl, Chest Lift, Chest Lift with Rotation,
+  Spine Twist Supine, Single Leg Stretch, Roll Up,
+  Roll-Like-a-Ball, Leg Circles
+
+- Cycling:
+  Indoor cycling, Outdoor cycling, Stationary bike intervals
+
+- Swimming:
+  Freestyle, Breaststroke, Backstroke, Water aerobics
 `;
 
   let stateInstructions = "";
 
+  /* =============================
+     STATE HANDLING
+  ============================== */
   switch (state) {
     case "welcome":
       stateInstructions = `
-CURRENT STATE: Welcome Message
+CURRENT STATE: Welcome
 
 Instructions:
 1. Greet the user warmly and introduce yourself as their AI fitness coach
@@ -100,7 +142,7 @@ Do NOT generate a plan yet. Only gather information.
       stateInstructions = `
 CURRENT STATE: Generating Workout Plan
 
-Collected Information:
+User Preferences:
 - Goal: ${gatheredInfo.goal}
 - Workout Style: ${gatheredInfo.workoutStyle}
 - Days per week: ${gatheredInfo.days}
@@ -145,7 +187,7 @@ Instructions:
 
     case "chat":
       stateInstructions = `
-CURRENT STATE: General Conversation
+CURRENT STATE: General Chat
 
 Instructions:
 - Answer fitness-related questions within safety rules.
@@ -160,6 +202,9 @@ Engage in helpful fitness conversation while following all safety rules.
 `;
   }
 
+  /* =============================
+     FINAL PROMPT
+  ============================== */
   return `
 ${safetyRules}
 
