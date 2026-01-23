@@ -192,12 +192,28 @@ export const updatePlanExercises = async (req, res) => {
 // Add this to your Node.js authPlan controller
 export const deletePlan = async (req, res) => {
     const { planId } = req.params;
-    const userId = req.user?.id; // Standardize this based on your session logic
+    const userId = req.user?.id || req.user?.userId || req.user?.userid;
 
     try {
-        await db.query("DELETE FROM user_plans WHERE plan_id = $1 AND user_id = $2", [planId, userId]);
+        await db.query('BEGIN');
+
+        // 1. Delete completion history first
+        await db.query("DELETE FROM exercise_completions WHERE plan_id = $1", [planId]);
+
+        // 2. Delete the exercises belonging to the plan
+        await db.query("DELETE FROM plan_exercises WHERE plan_id = $1", [planId]);
+
+        // 3. Delete the plan itself
+        const result = await db.query(
+            "DELETE FROM user_plans WHERE plan_id = $1 AND user_id = $2", 
+            [planId, userId]
+        );
+
+        await db.query('COMMIT');
         res.status(200).json({ message: "Plan deleted successfully" });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        await db.query('ROLLBACK');
+        console.error("Delete Plan Error:", err.message);
+        res.status(500).json({ error: "Server error: " + err.message });
     }
 };
