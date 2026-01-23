@@ -74,8 +74,8 @@ CREATE TABLE IF NOT EXISTS exercise_completions (
 ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 ALTER TABLE exercise_completions ADD COLUMN IF NOT EXISTS exercise_id INTEGER REFERENCES plan_exercises(exercise_id) ON DELETE CASCADE;
 
---عشاني عملت القوقل اذا بدكم تشوفةا نسختخا كويب حطوا هاي flutter run -d chrome --web-port 5000
---علي اوعك ثم اوعك تعدل بس ضيف ضيف علآ الاكواد ولا تغير التصميم بالغلط
+
+
 --update the table users
 ALTER TABLE users 
 DROP CONSTRAINT users_gender_check;

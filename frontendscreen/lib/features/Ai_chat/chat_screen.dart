@@ -36,8 +36,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadUserProfile() async {
     try {
-      final profile = await getUserProfile("dummy"); // userId not needed for profile call
+      // ✅ Updated: getUserProfile() no longer takes an argument
+      final profile = await getUserProfile();
       if (profile.isNotEmpty) {
+        if (!mounted) return;
         setState(() {
           userId = profile['userId']?.toString();
           userProfile = {
@@ -56,23 +58,25 @@ class _ChatScreenState extends State<ChatScreen> {
   void _sendWelcomeMessage() async {
     if (userId == null) return; // Wait for userId to be loaded
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
     final response = await sendMessage(
-      userId: userId!,
+      // ✅ Updated: sendMessage() no longer takes userId
       message: "Hello",
       userProfile: userProfile,
     );
 
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
       messages.add(ChatMessage(
         text: response.reply,
         isUser: false,
-        type: response.awaitingApproval 
-            ? MessageType.approvalRequest 
+        type: response.awaitingApproval
+            ? MessageType.approvalRequest
             : MessageType.text,
       ));
       _conversationState = response.conversationState;
@@ -85,6 +89,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void sendChatMessage(String text) async {
     if (text.trim().isEmpty || userId == null) return;
 
+    if (!mounted) return;
     setState(() {
       messages.add(ChatMessage(text: text, isUser: true));
       _isLoading = true;
@@ -94,23 +99,25 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     // Add loading message
+    if (!mounted) return;
     setState(() {
       messages.add(ChatMessage.loading());
     });
     _scrollToBottom();
 
     final response = await sendMessage(
-      userId: userId!,
+      // ✅ Updated: sendMessage() no longer takes userId
       message: text,
       userProfile: userProfile,
     );
 
+    if (!mounted) return;
     setState(() {
       // Remove loading message
       messages.removeWhere((msg) => msg.isLoading);
-      
+
       _isLoading = false;
-      
+
       // Determine message type based on response
       MessageType messageType = MessageType.text;
       if (response.awaitingApproval) {

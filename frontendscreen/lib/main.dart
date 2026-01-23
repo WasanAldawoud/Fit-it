@@ -32,62 +32,38 @@ class _MyAppState extends State<MyApp> {
   }
 
   // 🔹 The loop-breaker: Check if the browser already has a session cookie
+ // 🔹 The loop-breaker: Check if the browser already has a session cookie
   Future<void> _checkAuthStatus() async {
-    // Port 3000 is your Node.js server
-    const String url = 'http://localhost:3000/auth/profile';
+  // Use dynamic IP logic like in your other files
+  String baseUrl = kIsWeb ? 'http://localhost:3000' 
+      : (Platform.isAndroid ? 'http://10.0.2.2:3000' : 'http://26.35.223.225:3000');
 
-    try {
-      var client = http.Client();
-      if (kIsWeb) {
-        // 🔹 ESSENTIAL: This forces the browser to send the 'connect.sid' cookie
-        client = BrowserClient()..withCredentials = true;
+  try {
+    var client = http.Client();
+    if (kIsWeb) client = BrowserClient()..withCredentials = true;
+
+    final response = await client.get(
+      Uri.parse('$baseUrl/auth/profile'),
+      headers: {"Accept": "application/json"},
+    ).timeout(const Duration(seconds: 3));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      // Check for our new flag
+      if (data['authenticated'] == false) {
+        setState(() => _initialScreen = const SigninScreen());
+      } else {
+        setState(() => _initialScreen = const MainShell());
       }
-
-      final response = await client.get(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-      );
-
-      if (response.statusCode == 200) {
-        // 1. Session is valid! Now determine the URL to fetch the workout plan
-        String fetchUrl;
-        if (kIsWeb) {
-          fetchUrl = 'http://localhost:3000/auth/get-plan';
-        } else if (Platform.isAndroid) {
-          // Use your specific IP if on a real device, or 10.0.2.2 for emulator
-          fetchUrl = 'http://10.0.2.2:3000/auth/get-plan';
-        } else {
-          fetchUrl = 'http://localhost:3000/auth/get-plan';
-        }
-
-        // 2. Fetch the plan data
-        final fetchRes = await client.get(Uri.parse(fetchUrl));
-
-        if (fetchRes.statusCode == 200) {
-          final data = jsonDecode(fetchRes.body);
-          if (data['plan'] != null) {
-            // 3. Populate the PlanController so HomePage has data
-            PlanController.instance.syncFromBackend(data['plan']);
-          }
-        }
-
-        // 4. Move to MainShell (which contains the Bottom Navbar)
-        setState(() {
-          _initialScreen = const MainShell();
-        });
-      }else {
-        // No session found
-        setState(() {
-          _initialScreen = const SigninScreen();
-        });
-      }
-    } catch (e) {
-      debugPrint("Auth check failed: $e");
-      setState(() {
-        _initialScreen = const SigninScreen();
-      });
+    } else {
+      setState(() => _initialScreen = const SigninScreen());
     }
+  } catch (e) {
+    debugPrint("Auth check failed: $e");
+    setState(() => _initialScreen = const SigninScreen());
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

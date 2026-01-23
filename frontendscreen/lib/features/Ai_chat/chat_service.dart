@@ -1,11 +1,17 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/browser_client.dart' if (dart.library.io) 'package:http/io_client.dart';
+import 'package:http/browser_client.dart';
 
 // Helper function to get the appropriate HTTP client
 http.Client getHttpClient() {
-  // For web builds, use BrowserClient with credentials to handle cookies properly for cross-origin requests
-  return BrowserClient()..withCredentials = true;
+  // ✅ For Flutter Web: send cookies (Passport session)
+  if (kIsWeb) {
+    return BrowserClient()..withCredentials = true;
+  }
+
+  // ✅ For mobile/desktop: plain client (note: cookies are not persisted automatically)
+  return http.Client();
 }
 
 class ChatResponse {
@@ -32,7 +38,6 @@ class ChatResponse {
 }
 
 Future<ChatResponse> sendMessage({
-  required String userId,
   required String message,
   required Map userProfile,
 }) async {
@@ -42,7 +47,7 @@ Future<ChatResponse> sendMessage({
       Uri.parse("http://localhost:3000/ai/fitness-chat"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "userId": userId,
+        // ✅ userId removed: backend takes userId from session (req.user)
         "message": message,
         "userProfile": userProfile,
       }),
@@ -75,11 +80,12 @@ Future<ChatResponse> sendMessage({
       planGenerated: false,
       awaitingApproval: false,
     );
+  } finally {
+    client.close();
   }
 }
 
 Future<Map<String, dynamic>> approvePlan({
-  required String userId,
   required Map userProfile,
 }) async {
   final client = getHttpClient();
@@ -88,12 +94,12 @@ Future<Map<String, dynamic>> approvePlan({
       Uri.parse("http://localhost:3000/ai/approve-plan"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "userId": userId,
+        // ✅ userId removed: backend takes userId from session (req.user)
         "userProfile": userProfile,
       }),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
       return {
         'success': true,
@@ -103,7 +109,7 @@ Future<Map<String, dynamic>> approvePlan({
     } else {
       return {
         'success': false,
-        'message': 'Failed to approve plan: ${response.statusCode}',
+        'message': 'Failed to approve plan: ${response.statusCode} - ${response.body}',
       };
     }
   } catch (e) {
@@ -111,10 +117,12 @@ Future<Map<String, dynamic>> approvePlan({
       'success': false,
       'message': 'Network error: $e',
     };
+  } finally {
+    client.close();
   }
 }
 
-Future<Map<String, dynamic>> getUserProfile(String userId) async {
+Future<Map<String, dynamic>> getUserProfile() async {
   final client = getHttpClient();
   try {
     final response = await client.get(
@@ -131,5 +139,7 @@ Future<Map<String, dynamic>> getUserProfile(String userId) async {
   } catch (e) {
     print('Error fetching user profile: $e');
     return {};
+  } finally {
+    client.close();
   }
 }

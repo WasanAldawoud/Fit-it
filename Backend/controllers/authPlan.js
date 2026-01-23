@@ -38,9 +38,6 @@ export const saveUserPlan = async (req, res) => {
     }
 };
 
-// --- 2. GET ALL USER PLANS ---
-// Calculates today's progress by counting records in exercise_completions for CURRENT_DATE.
-// --- 2. GET ALL USER PLANS ---
 export const getAllUserPlans = async (req, res) => {
     const userId = req.user?.userid || req.user?.userId || req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -60,10 +57,15 @@ export const getAllUserPlans = async (req, res) => {
 
         for (let plan of plans) {
             const exercisesResult = await db.query(
-                "SELECT exercise_id, exercise_name, duration, days FROM plan_exercises WHERE plan_id = $1",
+                `SELECT ex.exercise_id, ex.exercise_name, ex.duration, ex.days,
+                EXISTS (
+                    SELECT 1 FROM exercise_completions ec 
+                    WHERE ec.exercise_id = ex.exercise_id 
+                    AND ec.completed_at::date = CURRENT_DATE
+                ) as is_done
+                FROM plan_exercises ex WHERE ex.plan_id = $1`,
                 [plan.plan_id]
             );
-            // Ensure the key is 'exercises' to match Flutter syncFromBackend
             plan.exercises = exercisesResult.rows;
         }
 
@@ -77,7 +79,7 @@ export const getAllUserPlans = async (req, res) => {
 // Inserts a record into 'exercise_completions'. This is what makes the progress bar move.
 export const markExerciseComplete = async (req, res) => {
     const { plan_id, exercise_name } = req.body;
-    const userId = req.user?.userid || req.user?.userId || req.user?.id;
+    const userId = req.user?.userid || req.user?.userId;
   
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
   
@@ -110,4 +112,71 @@ export const markExerciseComplete = async (req, res) => {
     }
   };
   
-// Weightlog table is deleted; logic is removed. Metadata is stored in user_plans columns.
+// --- 4. RENAME PLAN ---
+export const renamePlan = async (req, res) => {
+    const { plan_id, new_name } = req.body;
+    const userId = req.user?.userid || req.user?.userId;
+
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+        const result = await db.query(
+            "UPDATE user_plans SET plan_name = $1 WHERE plan_id = $2 AND user_id = $3 RETURNING *",
+            [new_name, plan_id, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Plan not found or unauthorized" });
+        }
+
+        res.status(200).json({ message: "Plan renamed successfully", plan: result.rows[0] });
+    } catch (err) {
+        console.error("Error in renamePlan:", err.message);
+        res.status(500).json({ error: "Database error" });
+    }
+};
+
+// authPlan.js - Add this route
+export const updatePlanExercises = async (req, res) => {
+    const { plan_id, exercises } = req.body;
+    const userId = req.user?.id; // Use your existing session/token logic
+
+    try {
+        await db.query('BEGIN'); // Start transaction
+
+        // 1. Clear old exercises for this specific plan
+        await db.query(
+            "DELETE FROM plan_exercises WHERE plan_id = $1", 
+            [plan_id]
+        );
+
+        // 2. Insert the new exercise list
+        for (const ex of exercises) {
+            await db.query(
+                "INSERT INTO plan_exercises (plan_id, exercise_name, duration, days) VALUES ($1, $2, $3, $4)",
+                [plan_id, ex.name, ex.duration, ex.days]
+            );
+        }
+
+        await db.query('COMMIT'); // Success
+        res.status(200).json({ message: "Plan updated successfully" });
+    } catch (err) {
+        await db.query('ROLLBACK'); // Cancel everything on error
+        console.error("Update Plan Error:", err.message);
+        res.status(500).json({ error: "Failed to update plan" });
+    }
+};
+
+
+// Add this to your Node.js authPlan controller
+export const deletePlan = async (req, res) => {
+    const { planId } = req.params;
+    const userId = req.user?.id; // Standardize this based on your session logic
+
+    try {
+        await db.query("DELETE FROM user_plans WHERE plan_id = $1 AND user_id = $2", [planId, userId]);
+        res.status(200).json({ message: "Plan deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

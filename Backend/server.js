@@ -25,10 +25,13 @@ const PgSession = pgSimple(session);
 
 // --- 1. Middleware (The Doormen) ---
 // CORS: Lets your Flutter app talk to this server even though they are on different ports.
-//Allows the server to accept requests from different origins (like Flutter app running on a different port/IP)
-// 2. Configure it properly
 app.use(cors({
-  origin: true, // Allow all origins for testing
+  origin: [
+    'http://localhost:5000', // Flutter Web
+    'http://localhost:3000', 
+    'http://10.0.2.2:3000',  // Android Emulator
+    'http://26.35.223.225:3000' // Your Physical Device IP
+  ], // Allow all origins for testing
   credentials: true,               // 🔹 Allows cookies to be stored
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -38,7 +41,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- 2. Session Setup (The Memory) ---
-// This tells the server: "When a user logs in, save their info in the 'sessions' table".
 app.use(session({
   store: new PgSession({
     pool: db,
@@ -49,24 +51,28 @@ app.use(session({
   saveUninitialized: false,
   cookie: { 
     maxAge: 30 * 24 * 60 * 60 * 1000,
-    httpOnly: true, 
-    secure: false,   // 🔹 MUST be false for localhost
-    sameSite: 'lax',  // 🔹 Allows the cookie to "travel" between ports
-    domain: 'localhost' // 🔹 Explicitly tell the browser this cookie is for localhost
+    httpOnly: true,
+    secure: false,     // 🔹 MUST be false for http://localhost
+    sameSite: 'lax'    // 🔹 OK for same-site localhost (different ports)
+   
   }
 }));
 
 // --- 3. Passport Init (The ID Check) ---
-// These two lines must come AFTER the session setup.
 app.use(passport.initialize());
-app.use(passport.session()); // This checks the cookie on every request to see who the user is.
+app.use(passport.session());
+// Change this block in your server.js
+app.get('/auth/profile', (req, res, next) => {
+  if (!req.user) {
+    // Return 200 with a clear 'authenticated: false' flag 
+    // instead of 401 to prevent console "errors"
+    return res.status(200).json({ authenticated: false }); 
+  }
+  next();
+});
 
 // --- 4. Routes (The Hallway) ---
-// "If anyone asks for /auth/signup, send them to the authRoutes file."
-//Tells Express that all routes defined in authRoutes.js (like /signup) should be accessed under the /auth prefix. The full path is now /auth/signup.
 app.use('/auth', authRoutes);
-
-// AI routes
 app.use('/ai', aiRoutes);
 
 // --- 5. Start (The Switch) ---
@@ -74,3 +80,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT,'0.0.0.0', () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+
+

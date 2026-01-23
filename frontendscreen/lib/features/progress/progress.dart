@@ -1,5 +1,6 @@
-import 'dart:async';
+/*import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -96,32 +97,47 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _recordCompletionInBackend(int planId, String exerciseName) async {
-  String url = kIsWeb
-      ? 'http://localhost:3000/auth/complete-exercise'
-      : 'http://10.0.2.2:3000/auth/complete-exercise';
+  // Inside progress.dart
+Future<void> _recordCompletionInBackend(
+  int planId,
+  String exerciseName,
+) async {
+  String baseUrl;
+
+  if (kIsWeb) {
+    baseUrl = 'http://localhost:3000';
+  } else if (Platform.isAndroid) {
+    baseUrl = 'http://10.0.2.2:3000';
+  } else {
+    baseUrl = 'http://26.35.223.225:3000';
+  }
+
+  final String url = '$baseUrl/auth/mark-exercise-complete';
+
   try {
-    var client = http.Client();
+    http.Client client = http.Client();
     if (kIsWeb) client = BrowserClient()..withCredentials = true;
-    
+
     final response = await client.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"plan_id": planId, "exercise_name": exerciseName}),
+      body: jsonEncode({
+        "plan_id": planId,
+        "exercise_name": exerciseName,
+      }),
     );
 
     if (response.statusCode == 200) {
-      // 🔹 IMPORTANT: Increment local count so the progress bar moves immediately
-      final plan = PlanController.instance.currentPlan.value;
-      if (plan != null) {
-        plan.completedToday += 1;
-        PlanController.instance.notifyCurrentPlanChanged();
-      }
+      // 🔥 REFRESH FROM BACKEND (THIS ACTIVATES THE PROGRESS BAR)
+      await PlanController.instance.fetchAllPlans();
     }
+
+    client.close();
   } catch (e) {
-    debugPrint("Sync Error: $e");
+    debugPrint("❌ Sync failed: $e");
   }
 }
+
 
   void _resetActiveExercise() {
     if (_activeExercise == null) return;
@@ -141,9 +157,10 @@ class _HomePageState extends State<HomePage> {
         child: ValueListenableBuilder<Plan?>(
           valueListenable: PlanController.instance.currentPlan,
           builder: (context, plan, _) {
-            double progressValue = (plan == null || plan.totalExercises == 0) 
-                ? 0 
-                : plan.completedToday / plan.totalExercises;
+                debugPrint("Current Progress: ${plan?.completedToday} / ${plan?.totalExercises}");
+                double progressValue = (plan == null || plan.totalExercises == 0) 
+                                        ? 0 
+                                            : plan.completedToday / plan.totalExercises;
 
             return Column(
               children: [
@@ -301,4 +318,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
+}*/

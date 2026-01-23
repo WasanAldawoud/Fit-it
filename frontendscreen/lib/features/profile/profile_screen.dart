@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:frontendscreen/features/signin_signup/signin_screen.dart';
+import '../signin_signup/signin_screen.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:frontendscreen/app_styles/color_constants.dart';
+import '../../app_styles/color_constants.dart';
 import 'dart:convert'; // Used to turn JSON from the server into Dart Maps
 import 'package:http/http.dart' as http; // Main library for API calls
 import 'package:http/browser_client.dart'; // Handles Cookies for Web (Passport.js support)
@@ -57,7 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _heightController = TextEditingController();
     
     // Automatically fetch the latest data from the PostgreSQL DB when the screen opens
-    fetchUserProfile();
+  // fetchUserProfile();
   }
 
   @override
@@ -71,68 +71,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ==========================================
   // BACKEND COMMUNICATION LOGIC
   // ==========================================
+  @override
+void didChangeDependencies() {
+  super.didChangeDependencies();
 
-  /// Helper to get the correct Base URL based on whether you are on Web, Emulator, or Device.
-  String _getBaseUrl() {
-    if (kIsWeb) {
-    return 'http://localhost:3000/auth/profile'; // Option 1: Web
-  }else if (Platform.isAndroid){
-    return 'http://10.0.2.2:3000/auth/profile'; // 🔹 Standardized Emulator IP
-  }else{
-   return 'http://26.35.223.225:3000/auth/profile'; // Option 3: Physical Device
-  }
+  // Fetch only when screen is actually opened AFTER login
+  fetchUserProfile();
+}
 
-  }
+ // ... (keep your existing imports)
 
   /// GET Request: Downloads user data from the Node.js /profile route.
+ /// GET Request: Downloads user data from the Node.js /profile route.
   Future<void> fetchUserProfile() async {
-    try {
-      var client = http.Client();
+  // Prevent multiple simultaneous loads
+  if (!mounted) return;
+  
+  try {
+    var client = http.Client();
+    if (kIsWeb) client = BrowserClient()..withCredentials = true;
+
+    final response = await client.get(
+      Uri.parse(_getBaseUrl()),
+      headers: {"Accept": "application/json"},
+    );
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
       
-      // If Web, we MUST use BrowserClient to ensure the session cookie is sent
-      if (kIsWeb) client = BrowserClient()..withCredentials = true;
+      // Handle the "Silent No-Auth" case
+      if (body['authenticated'] == false) {
+        if (mounted) setState(() => isLoading = false);
+        return; 
+      }
 
-      final response = await client.get(
-        Uri.parse(_getBaseUrl()),
-        headers: {"Content-Type": "application/json"},
-      );
-
-      if (response.statusCode == 200) {
-        // Parse the JSON object returned by your 'getProfile' controller
-        final userData = jsonDecode(response.body)['user'];
-        
+      final userData = body['user'];
+      if (mounted) {
         setState(() {
           userName = userData['username'];
-          
-          // Basic formatting to ensure the gender matches our Dropdown values
-          if (userData['gender'] != null) {
-            String g = userData['gender'].toString().toLowerCase();
-            gender = g[0].toUpperCase() + g.substring(1);
-          } else {
-            gender = 'Other';
-          }
-
-          if (userData['birthdate'] != null) birthDate = DateTime.parse(userData['birthdate']);
-          
-          weight = double.tryParse(userData['weight'].toString());
-          height = double.tryParse(userData['height'].toString());
-
-          // Populate the text fields with the fetched data
-          _nameController.text = userName ?? '';
-          _weightController.text = weight?.toString() ?? '';
-          _heightController.text = height?.toString() ?? '';
-          
-          isLoading = false; // Data loaded, hide the spinner
+          // ... rest of your mapping code ...
+          isLoading = false;
         });
-      } else {
-        setState(() => isLoading = false);
       }
-    } catch (e) {
-      debugPrint("❌ Error fetching profile: $e");
-      setState(() => isLoading = false);
     }
+  } catch (e) {
+    if (mounted) setState(() => isLoading = false);
   }
+}
 
+
+  /// Corrected URL Helper to match your HomePage logic
+  String _getBaseUrl() {
+    String baseUrl;
+    if (kIsWeb) {
+      baseUrl = 'http://localhost:3000'; 
+    } else if (Platform.isAndroid) {
+      // Use your laptop IP for physical/emulator consistency if needed
+      // or 10.0.2.2 for pure emulator
+      baseUrl = 'http://10.0.2.2:3000'; 
+    } else {
+      baseUrl = 'http://26.35.223.225:3000'; 
+    }
+    return '$baseUrl/auth/profile';
+  }
   /// PUT Request: Uploads edited profile data back to the PostgreSQL database.
   Future<void> updateUserProfile() async {
     try {

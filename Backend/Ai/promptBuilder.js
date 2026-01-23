@@ -21,13 +21,13 @@ function calculateAge(birthdate) {
 export function buildPrompt(user, conversationState) {
   const age = calculateAge(user.birthdate);
   const state = conversationState.state;
-  const gatheredInfo = conversationState.gatheredInfo;
+  const gatheredInfo = conversationState.gatheredInfo || {};
 
   // Base user information
   const userInfo = `
 User Profile:
-- Age: ${age ? age + ' years old' : 'Not provided'}
-- Gender: ${user.gender || 'Not provided'}
+- Age: ${age ? age + " years old" : "Not provided"}
+- Gender: ${user.gender || "Not provided"}
 - Height: ${user.height} cm
 - Weight: ${user.weight} kg
 - Equipment: ${user.equipment ? "Yes" : "No"}
@@ -46,63 +46,57 @@ Available exercises (only suggest from this list):
 - Swimming: Freestyle, Breaststroke, Backstroke, Water aerobics
 `;
 
-  // State-specific instructions
-  let stateInstructions = '';
+  let stateInstructions = "";
 
   switch (state) {
-    case 'welcome':
+    case "welcome":
       stateInstructions = `
 CURRENT STATE: Welcome Message
 
 Instructions:
 1. Greet the user warmly and introduce yourself as their AI fitness coach
 2. Explain that you'll help create a personalized workout plan
-3. Ask the user to provide the following information:
-   - Their fitness goal (e.g., weight loss, muscle gain, general fitness, endurance, flexibility)
-   - Their preferred workout style (e.g., Cardio, Yoga, Strength Training, Core Exercises, Stretching, Pilates, Cycling, Swimming, or a combination)
-   - How many days per week they can commit to working out
-
-Example welcome message:
-"Hello! 👋 I'm your AI fitness coach, here to help you achieve your fitness goals!
-
-To create the perfect workout plan for you, I need to know:
-1. **Your fitness goal** - What would you like to achieve? (e.g., weight loss, muscle gain, general fitness)
-2. **Your preferred workout style** - What type of exercises do you enjoy? (e.g., Cardio, Yoga, Strength Training, or a mix)
-3. **Your availability** - How many days per week can you work out?
-
-Please share this information, and I'll create a personalized plan just for you!"
+3. Ask the user to provide:
+   - Fitness goal (e.g., weight loss, muscle gain, general fitness, endurance, flexibility)
+   - Preferred workout style (Cardio, Yoga, Strength Training, Core Exercises, Stretching, Pilates, Cycling, Swimming, or a mix)
+   - Days per week they can commit
+   - Deadline or timeframe (e.g., "by 2026-03-01" or "in 8 weeks")
 
 Keep it friendly, encouraging, and concise.
 `;
       break;
 
-    case 'gathering_info':
+    case "gathering_info": {
       const missingInfo = [];
-      if (!gatheredInfo.goal) missingInfo.push('fitness goal');
-      if (!gatheredInfo.workoutStyle) missingInfo.push('preferred workout style');
-      if (!gatheredInfo.days) missingInfo.push('available days per week');
+      if (!gatheredInfo.goal) missingInfo.push("fitness goal");
+      if (!gatheredInfo.workoutStyle) missingInfo.push("preferred workout style");
+      if (!gatheredInfo.days) missingInfo.push("available days per week");
+      if (!gatheredInfo.deadline && !gatheredInfo.durationWeeks) missingInfo.push("deadline or timeframe");
 
       stateInstructions = `
 CURRENT STATE: Gathering Information
 
 Information collected so far:
-- Goal: ${gatheredInfo.goal || 'NOT PROVIDED'}
-- Workout Style: ${gatheredInfo.workoutStyle || 'NOT PROVIDED'}
-- Days per week: ${gatheredInfo.days || 'NOT PROVIDED'}
+- Goal: ${gatheredInfo.goal || "NOT PROVIDED"}
+- Workout Style: ${gatheredInfo.workoutStyle || "NOT PROVIDED"}
+- Days per week: ${gatheredInfo.days || "NOT PROVIDED"}
+- Deadline (date): ${gatheredInfo.deadline || "NOT PROVIDED"}
+- Timeframe (weeks): ${gatheredInfo.durationWeeks || "NOT PROVIDED"}
 
-Missing information: ${missingInfo.join(', ')}
+Missing information: ${missingInfo.join(", ")}
 
 Instructions:
 1. Acknowledge what the user has provided
 2. Ask for the missing information in a friendly, conversational way
-3. If the user's response is unclear, ask clarifying questions
-4. Once ALL information is collected, confirm with the user and let them know you'll generate their plan
+3. Accept a timeframe (e.g., "in 8 weeks") OR a date (e.g., "2026-03-01")
+4. Once ALL information is collected, confirm and say you will generate the plan
 
 Do NOT generate a plan yet. Only gather information.
 `;
       break;
+    }
 
-    case 'generating_plan':
+    case "generating_plan":
       stateInstructions = `
 CURRENT STATE: Generating Workout Plan
 
@@ -110,100 +104,51 @@ Collected Information:
 - Goal: ${gatheredInfo.goal}
 - Workout Style: ${gatheredInfo.workoutStyle}
 - Days per week: ${gatheredInfo.days}
+- Deadline (date): ${gatheredInfo.deadline || "NOT PROVIDED"}
+- Timeframe (weeks): ${gatheredInfo.durationWeeks || "NOT PROVIDED"}
 
 ${exercisesList}
 
 Instructions:
 1. Create a personalized weekly workout plan based on the user's goal, preferred workout style, and available days
-2. Select 1-2 exercise types from the available list that match their workout style preference
-3. Distribute exercises across their available days
-4. Consider their age (${age || 'unknown'}) and gender (${user.gender || 'unknown'}) for appropriate intensity
-5. Use ONLY exercises from the available list above
-6. Format the plan clearly with:
-   - Day headers (e.g., **Monday:**, **Wednesday:**)
-   - Exercise category and name
-   - Duration for each exercise
-7. Keep exercises beginner-friendly if no equipment is available
-8. Include warm-up and cool-down recommendations
-9. After presenting the plan, ALWAYS end with:
+2. Ensure exercises on the same day are compatible and "go well together"
+3. Use ONLY exercises from the available list above
+4. Start the plan with:
+   "Plan Name: <short name aligned with goal + exercise combo>"
+5. Format the plan with day headers (e.g., **Monday:**) and bullet exercises
+6. Include warm-up and cool-down recommendations
+7. After presenting the plan, ALWAYS end with:
    "Would you like to approve this plan? Reply 'Yes' to save it, or 'No' to request changes."
-
-Example format:
-## Your Personalized Workout Plan
-
-**Monday:**
-- Cardio: Brisk Walking - 30 mins
-- Stretching: Hamstring Stretch - 10 mins
-
-**Wednesday:**
-- Strength Training: Squats - 3 sets of 12 reps
-- Core Exercises: Plank - 3 sets of 30 seconds
-
-**Friday:**
-- Yoga: Downward Facing Dog - 5 mins
-- Stretching: Full Body Stretch - 15 mins
-
-**Tips:**
-- Always warm up for 5-10 minutes before starting
-- Stay hydrated throughout your workout
-- Rest for at least one day between intense sessions
-
-Would you like to approve this plan? Reply 'Yes' to save it, or 'No' to request changes.
 `;
       break;
 
-    case 'awaiting_approval':
+    case "awaiting_approval":
       stateInstructions = `
 CURRENT STATE: Awaiting Plan Approval
 
-The user has been presented with a workout plan and needs to approve or reject it.
-
 Instructions:
-1. If the user says "Yes", "Approve", "Looks good", or similar positive response:
-   - Confirm that the plan will be saved
-   - Encourage them to start their fitness journey
-   - Offer to answer any questions about the exercises
-
-2. If the user says "No", "Change", "Modify", or provides feedback:
-   - Ask what specific changes they'd like
-   - Acknowledge their feedback
-   - Prepare to regenerate the plan with their modifications
-
-3. If the user's response is unclear:
-   - Politely ask them to confirm with "Yes" to approve or "No" to request changes
-
-Do NOT generate a new plan unless they explicitly request changes.
+- If user approves, confirm it will be saved and encourage them.
+- If user requests changes, ask what to change.
+- If unclear, ask them to reply Yes or No.
 `;
       break;
 
-    case 'approved':
+    case "approved":
       stateInstructions = `
 CURRENT STATE: Plan Approved and Saved
 
-The user's workout plan has been saved to their account.
-
 Instructions:
-1. Congratulate them on taking this step
-2. Provide motivational encouragement
-3. Remind them they can view their plan in the "My Plans" section
-4. Offer to answer questions about exercises or create additional plans
-5. Keep responses brief and encouraging
-
-You can now engage in general fitness conversation or help with other requests.
+- Congratulate them and encourage consistency.
+- Offer to answer questions.
 `;
       break;
 
-    case 'chat':
+    case "chat":
       stateInstructions = `
 CURRENT STATE: General Conversation
 
 Instructions:
-1. Answer fitness-related questions
-2. Provide exercise tips and guidance
-3. Offer motivation and support
-4. If the user wants to create a new plan, guide them through the process again
-5. Stay within your role as a fitness assistant
-
+- Answer fitness-related questions within safety rules.
 ${exercisesList}
 `;
       break;

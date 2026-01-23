@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import db from "../config/db.js";
 // ⚠️ NEW: Import 'passport' for the sign-in route
 import passport from "passport";
+
 export const signUp = async (req, res) => {
   // 1. Unpack the box (req.body) sent from Flutter
   const { username, email, password, gender, birthdate, weight, height } = req.body;
@@ -115,25 +116,28 @@ export const signIn = (req, res, next) => {
 };
 
 export const getProfile = (req, res) => {
-  if (req.user) {
-    // req.user is only available if the user has a valid session cookie.
-    // Passport automatically populates this via the 'deserializeUser' function.
-    res.status(200).json({
-      user: {
-        userId: req.user.userid || req.user.userId,
-        username: req.user.username,
-        email: req.user.email,
-        gender: req.user.gender,
-        birthdate: req.user.birthdate,
-        weight: req.user.weight || 0,
-        height: req.user.height || 0
-      }
+  if (!req.user) {
+    return res.status(401).json({
+      error: "Not authenticated",
+      authenticated: false
     });
-  } else {
-    // If there is no cookie or the session expired:
-    res.status(401).json({ error: "Not authenticated" });
   }
+
+  res.status(200).json({
+    success: true,
+    user: {
+      userId: req.user.userid,
+      username: req.user.username,
+      email: req.user.email,
+      gender: req.user.gender,
+      birthdate: req.user.birthdate,
+      weight: parseFloat(req.user.weight) || 0,
+      height: parseFloat(req.user.height) || 0
+    }
+  });
 };
+
+
 
 export const updateProfile = async (req, res) => {
   if (!req.user) return res.status(401).json({ error: "Not authenticated" });
@@ -157,6 +161,21 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ error: "Database update failed" });
   }
 };
+
+export const logout = (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      console.error("❌ Logout error:", err);
+      return res.status(500).json({ error: "Logout failed" });
+    }
+
+    req.session.destroy(() => {
+      res.clearCookie("connect.sid"); // 🔑 VERY IMPORTANT
+      return res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
+};
+
     
 export const googleCallback = (req, res) => {
   const webAppUrl = "http://localhost:5000/#/home"; 
