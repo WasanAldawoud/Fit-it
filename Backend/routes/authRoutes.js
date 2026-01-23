@@ -45,9 +45,16 @@ router.post('/rename-plan', renamePlan);
 
 // Update exercises inside a plan (used by PlanDetailScreen)
 router.post('/update-plan-exercises', updatePlanExercises); // <--- NEW
+// Middleware to check if the user is logged in via Passport session
+const authenticateToken = (req, res, next) => {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.status(401).json({ error: "Unauthorized. Please log in." });
+};
 
 // Delete a plan using its ID as a URL parameter
-router.post('/delete-plan/:planId', deletePlan); // <--- NEW
+router.delete('/delete-plan/:planId', authenticateToken, deletePlan); // <--- NEW
 
 // Progress Tracking
 router.post("/mark-exercise-complete", markExerciseComplete);
