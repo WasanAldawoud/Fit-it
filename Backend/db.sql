@@ -79,3 +79,11 @@ ALTER TABLE exercise_completions ADD COLUMN IF NOT EXISTS exercise_id INTEGER RE
 --update the table users
 ALTER TABLE users 
 DROP CONSTRAINT users_gender_check;
+
+--update the user_plans table:
+ALTER TABLE user_plans; 
+DROP CONSTRAINT IF EXISTS user_plans_user_id_fkey;
+
+ALTER TABLE user_plans 
+ADD CONSTRAINT user_plans_user_id_fkey 
+FOREIGN KEY (user_id) REFERENCES users(userid) ON DELETE CASCADE;

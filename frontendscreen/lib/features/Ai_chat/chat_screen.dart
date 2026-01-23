@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import './chat_message.dart';
 import './chat_service.dart';
-
+import '../common/plan_controller.dart';
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -87,59 +87,48 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void sendChatMessage(String text) async {
-    if (text.trim().isEmpty || userId == null) return;
+  if (text.trim().isEmpty || userId == null) return;
 
-    if (!mounted) return;
-    setState(() {
-      messages.add(ChatMessage(text: text, isUser: true));
-      _isLoading = true;
-    });
+  setState(() {
+    messages.add(ChatMessage(text: text, isUser: true));
+    _isLoading = true;
+  });
 
-    _controller.clear();
-    _scrollToBottom();
+  _controller.clear();
+  _scrollToBottom();
 
-    // Add loading message
-    if (!mounted) return;
-    setState(() {
-      messages.add(ChatMessage.loading());
-    });
-    _scrollToBottom();
+  final response = await sendMessage(
+    message: text,
+    userProfile: userProfile,
+  );
 
-    final response = await sendMessage(
-      // ✅ Updated: sendMessage() no longer takes userId
-      message: text,
-      userProfile: userProfile,
-    );
+  if (!mounted) return;
 
-    if (!mounted) return;
-    setState(() {
-      // Remove loading message
-      messages.removeWhere((msg) => msg.isLoading);
+  setState(() {
+    messages.removeWhere((msg) => msg.isLoading);
+    _isLoading = false;
 
-      _isLoading = false;
+    MessageType messageType = response.awaitingApproval 
+        ? MessageType.approvalRequest 
+        : (response.planGenerated ? MessageType.plan : MessageType.text);
 
-      // Determine message type based on response
-      MessageType messageType = MessageType.text;
-      if (response.awaitingApproval) {
-        messageType = MessageType.approvalRequest;
-      } else if (response.planGenerated) {
-        messageType = MessageType.plan;
-      }
+    messages.add(ChatMessage(
+      text: response.reply,
+      isUser: false,
+      type: messageType,
+    ));
 
-      messages.add(ChatMessage(
-        text: response.reply,
-        isUser: false,
-        type: messageType,
-      ));
+    _conversationState = response.conversationState;
+    _awaitingApproval = response.awaitingApproval;
+  });
 
-      _conversationState = response.conversationState;
-      _awaitingApproval = response.awaitingApproval;
-    });
-
-    _scrollToBottom();
+  // ✅ NEW: If the plan was just approved, sync the local PlanController
+  if (_conversationState == 'approved') {
+    await PlanController.instance.fetchAllPlans();
   }
 
-
+  _scrollToBottom();
+}
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {

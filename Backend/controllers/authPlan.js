@@ -2,8 +2,10 @@ import db from "../config/db.js";
 
 // --- 1. SAVE USER PLAN ---
 // Creates the plan metadata and links the specific exercises to it.
+// --- REFACTORED SAVE/UPDATE PLAN ---
 export const saveUserPlan = async (req, res) => {
-    const { plan_name, exercises, goal, duration_weeks, deadline, current_weight, goal_weight } = req.body;
+    // 1. Destructure plan_id from the body
+    const { plan_id, plan_name, exercises, goal, duration_weeks, deadline, current_weight, goal_weight } = req.body;
     const userId = req.user?.userid || req.user?.userId || req.user?.id;
     
     if (!userId) {
@@ -11,33 +13,51 @@ export const saveUserPlan = async (req, res) => {
     }
 
     try {
-        await db.query('BEGIN'); // Start transaction for data safety
+        await db.query('BEGIN');
 
-        const planResult = await db.query(
-            `INSERT INTO user_plans (user_id, plan_name, goal, duration_weeks, deadline, current_weight, goal_weight) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING plan_id`,
-            [userId, plan_name || 'My Workout Plan', goal, duration_weeks, deadline, current_weight, goal_weight]
-        );
-        
-        const planId = planResult.rows[0].plan_id;
+        let finalPlanId = plan_id;
 
-        // Loop through exercises and link to the new planId
+        if (plan_id) {
+            // --- UPDATE EXISTING PLAN ---
+            await db.query(
+                `UPDATE user_plans 
+                 SET plan_name = $1, goal = $2, duration_weeks = $3, deadline = $4, current_weight = $5, goal_weight = $6
+                 WHERE plan_id = $7 AND user_id = $8`,
+                [plan_name, goal, duration_weeks, deadline, current_weight, goal_weight, plan_id, userId]
+            );
+
+            // Clear old exercises to replace them with the updated list
+            await db.query("DELETE FROM plan_exercises WHERE plan_id = $1", [plan_id]);
+        } else {
+            // --- CREATE NEW PLAN ---
+            const planResult = await db.query(
+                `INSERT INTO user_plans (user_id, plan_name, goal, duration_weeks, deadline, current_weight, goal_weight) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING plan_id`,
+                [userId, plan_name || 'My Workout Plan', goal, duration_weeks, deadline, current_weight, goal_weight]
+            );
+            finalPlanId = planResult.rows[0].plan_id;
+        }
+
+        // --- SAVE EXERCISES (Used for both New and Update) ---
         for (const ex of exercises) {
             await db.query(
                 "INSERT INTO plan_exercises (plan_id, category, exercise_name, duration, days) VALUES ($1, $2, $3, $4, $5)",
-                [planId, ex.category, ex.name, ex.duration, ex.days]
+                [finalPlanId, ex.category, ex.name || ex.exercise_name, ex.duration, ex.days]
             );
         }
 
-        await db.query('COMMIT'); // Save changes
-        res.status(201).json({ message: "Plan saved successfully!", planId });
+        await db.query('COMMIT');
+        res.status(plan_id ? 200 : 201).json({ 
+            message: plan_id ? "Plan updated!" : "Plan saved!", 
+            planId: finalPlanId 
+        });
+
     } catch (err) {
-        await db.query('ROLLBACK'); // Cancel if any insert fails
+        await db.query('ROLLBACK');
         console.error("Error in saveUserPlan:", err.message);
         res.status(500).json({ error: "Database error: " + err.message });
     }
 };
-
 export const getAllUserPlans = async (req, res) => {
     const userId = req.user?.userid || req.user?.userId || req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });

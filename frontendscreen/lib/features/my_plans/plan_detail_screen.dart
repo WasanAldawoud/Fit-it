@@ -1,10 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // For kIsWeb
-import 'package:http/http.dart' as http;
-import 'package:http/browser_client.dart'; // For Web session cookies
-import 'dart:convert';
-import 'dart:io';
 
 import '../../app_styles/color_constants.dart';
 import '../common/plan_controller.dart';
@@ -24,95 +19,63 @@ class PlanDetailScreen extends StatefulWidget {
 }
 
 class _PlanDetailScreenState extends State<PlanDetailScreen> {
-  bool _isSyncing = false; // To show a loading indicator during DB updates
-
   String _formatDate(DateTime d) {
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
   }
 
   String _formatDays(List<String> days) {
     return days.join(', ');
   }
 
-  /// NEW: Helper to sync all changes to the PostgreSQL database
-  Future<void> _syncWithBackend() async {
-    setState(() => _isSyncing = true);
-    
-    String baseUrl = kIsWeb 
-        ? 'http://localhost:3000' 
-        : (Platform.isAndroid ? 'http://10.0.2.2:3000' : 'http://26.35.223.225:3000');
-
-    try {
-      var client = http.Client();
-      if (kIsWeb) client = BrowserClient()..withCredentials = true;
-
-      final response = await client.post(
-        Uri.parse('$baseUrl/auth/update-plan-exercises'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "plan_id": widget.plan.id,
-          "exercises": widget.plan.exercises.map((ex) => {
-            "name": ex.name,
-            "duration": "${ex.duration.inMinutes}m ${ex.duration.inSeconds % 60}s",
-            "days": ex.days,
-          }).toList(),
-        }),
-      );
-
-      if (response.statusCode != 200) throw Exception("Failed to sync");
-      
-      client.close();
-    } catch (e) {
-      debugPrint("❌ Sync Error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Cloud sync failed. Changes saved locally.")),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSyncing = false);
-    }
-  }
-
   Future<void> _editExercise(PlanExercise exercise, int index) async {
+    // First, select duration
     final newDuration = await showHMSDurationPicker(context, initialDuration: exercise.duration);
     if (newDuration == null) return;
 
+    // Then, select days
     final newDays = await showDialog<Set<String>>(
       context: context,
       builder: (context) => DaySelectionDialog(initialSelectedDays: exercise.days.toSet()),
     );
     if (newDays == null || newDays.isEmpty) return;
 
+    // Update the exercise
     setState(() {
       exercise.duration = newDuration;
       exercise.days = newDays.toList();
+      // Reset per-day tracking
       exercise.perDayRemainingDuration.clear();
       for (final day in exercise.days) {
         exercise.perDayRemainingDuration[day] = exercise.duration;
       }
     });
-    
     PlanController.instance.notifyCurrentPlanChanged();
-    await _syncWithBackend(); // SYNC TO DB
   }
 
   void _deleteExercise(int index) async {
     final exercise = widget.plan.exercises[index];
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Exercise'),
-        content: Text('Are you sure you want to delete "${exercise.name}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Exercise'),
+          content: Text('Are you sure you want to delete "${exercise.name}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm == true) {
@@ -120,11 +83,14 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
         widget.plan.exercises.removeAt(index);
       });
       PlanController.instance.notifyCurrentPlanChanged();
-      await _syncWithBackend(); // SYNC TO DB
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${exercise.name}" deleted')),
+      );
     }
   }
 
   Future<void> _modifyPlan() async {
+    // Navigate to CreatePlanScreen with existing plan for editing
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -134,7 +100,11 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
         ),
       ),
     );
-    if (mounted) setState(() {});
+
+    // After returning from edit, refresh the UI
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -144,64 +114,239 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
       appBar: AppBar(
         backgroundColor: ColorConstants.primaryColor,
         elevation: 0,
-        title: Text(widget.plan.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        actions: [
-          if (_isSyncing) 
-            const Padding(
-              padding: EdgeInsets.all(12.0), 
-              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.fitness_center, color: Colors.white, size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.plan.name,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          IconButton(icon: const Icon(Icons.tune, color: Colors.white), onPressed: _modifyPlan),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune, color: Colors.white),
+            onPressed: _modifyPlan,
+            tooltip: 'Edit plan',
+          ),
         ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header UI (omitted for brevity, keep your original header code here)
-              _buildHeader(), 
-              
-              // Exercise List
+              // Plan Info Header
               Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [ColorConstants.primaryColor, ColorConstants.primaryColor.withOpacity(0.8)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
-                padding: const EdgeInsets.all(20),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: widget.plan.exercises.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final ex = widget.plan.exercises[index];
-                    return Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      child: ListTile(
-                        title: Text(ex.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${ex.duration.inMinutes}m | ${_formatDays(ex.days)}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(icon: const Icon(Icons.edit, size: 20), onPressed: () => _editExercise(ex, index)),
-                            IconButton(icon: const Icon(Icons.delete, color: Colors.red, size: 20), onPressed: () => _deleteExercise(index)),
-                          ],
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: ColorConstants.accentColor,
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: Text(
+                            widget.plan.goal ?? 'No Goal',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                        const Spacer(),
+                        if (widget.plan.deadline != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Text(
+                              'Deadline: ${_formatDate(widget.plan.deadline!)}',
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.list_alt, color: Colors.white70, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Exercises: ${widget.plan.exercises.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
+
+              // Divider
+              Container(
+                height: 2,
+                color: Colors.white.withOpacity(0.3),
+              ),
+
+              // Exercises List
+              Container(
+                color: Colors.grey[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.sports_gymnastics, color: ColorConstants.primaryColor, size: 24),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Exercises',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (widget.plan.exercises.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 60),
+                          alignment: Alignment.center,
+                          child: Column(
+                            children: [
+                              Icon(Icons.fitness_center, size: 48, color: Colors.grey[400]),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No exercises yet',
+                                style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: widget.plan.exercises.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final exercise = widget.plan.exercises[index];
+                            return Card(
+                              elevation: 4,
+                              shadowColor: ColorConstants.primaryColor.withOpacity(0.2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                leading: CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: ColorConstants.accentColor.withOpacity(0.2),
+                                  child: Icon(
+                                    Icons.fitness_center,
+                                    color: ColorConstants.accentColor,
+                                    size: 24,
+                                  ),
+                                ),
+                                title: Text(
+                                  exercise.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.schedule, size: 16, color: ColorConstants.primaryColor),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${exercise.duration.inMinutes} min',
+                                          style: const TextStyle(color: Colors.black54, fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.calendar_today, size: 16, color: ColorConstants.primaryColor),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            _formatDays(exercise.days),
+                                            style: const TextStyle(color: Colors.black54, fontSize: 14),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.edit, color: ColorConstants.primaryColor, size: 22),
+                                      onPressed: () => _editExercise(exercise, index),
+                                      tooltip: 'Edit exercise',
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red, size: 22),
+                                      onPressed: () => _deleteExercise(index),
+                                      tooltip: 'Delete exercise',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: AppNavBar(
+        currentIndex: 1,
+        onTap: (i) => Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainShell()),
+          (route) => false,
+        ),
+      ),
     );
-  }
-
-  Widget _buildHeader() {
-    // Paste your existing header Column here (Goal, Deadline, Exercise count)
-    return const SizedBox.shrink(); // Placeholder
   }
 }

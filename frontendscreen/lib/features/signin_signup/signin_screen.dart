@@ -1,8 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'package:frontendscreen/app_styles/color_constants.dart';
-// import 'package:frontendscreen/app_styles/custom_widgets.dart';
-// import 'package:frontendscreen/choosing_screen/home_page.dart';
-// import 'package:frontendscreen/choosing_screen/signup_screen.dart';
 
 import 'package:flutter/material.dart';
 import '../../app_styles/color_constants.dart';
