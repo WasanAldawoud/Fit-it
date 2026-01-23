@@ -83,8 +83,9 @@ void didChangeDependencies() {
 
   /// GET Request: Downloads user data from the Node.js /profile route.
  /// GET Request: Downloads user data from the Node.js /profile route.
-  Future<void> fetchUserProfile() async {
-  // Prevent multiple simultaneous loads
+  /// GET Request: Downloads user data from the Node.js /profile route.
+Future<void> fetchUserProfile() async {
+  // Prevent multiple simultaneous loads or calling on unmounted widget
   if (!mounted) return;
   
   try {
@@ -94,32 +95,76 @@ void didChangeDependencies() {
     final response = await client.get(
       Uri.parse(_getBaseUrl()),
       headers: {"Accept": "application/json"},
-    );
+    ).timeout(const Duration(seconds: 10)); // Added timeout to prevent infinite hang
 
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
       
-      // Handle the "Silent No-Auth" case
+      // Handle the "Silent No-Auth" case if your middleware returns this
       if (body['authenticated'] == false) {
+        debugPrint("⚠️ User not authenticated according to server.");
         if (mounted) setState(() => isLoading = false);
         return; 
       }
 
       final userData = body['user'];
+      
+      // Debug print to see the raw types coming from PostgreSQL
+      debugPrint("📡 Received User Data: $userData");
+
       if (mounted) {
         setState(() {
+          // 1. Map String fields
           userName = userData['username'];
-          // ... rest of your mapping code ...
+          
+          // 2. Map Gender with capitalization fix
+          if (userData['gender'] != null && userData['gender'].toString().isNotEmpty) {
+            String g = userData['gender'].toString();
+            gender = g[0].toUpperCase() + g.substring(1).toLowerCase();
+          } else {
+            gender = 'Other';
+          }
+
+          // 3. Map Date field
+          birthDate = userData['birthdate'] != null 
+              ? DateTime.parse(userData['birthdate']) 
+              : null;
+
+          // 4. FIX: Safer Number Parsing
+          // We convert to String first, then parse to Double. 
+          // This fixes the "String is not a subtype of num" error.
+          weight = userData['weight'] != null 
+              ? double.tryParse(userData['weight'].toString()) 
+              : null;
+              
+          height = userData['height'] != null 
+              ? double.tryParse(userData['height'].toString()) 
+              : null;
+
+          // 5. Initialize controllers for the "Edit" mode
+          _nameController.text = userName ?? '';
+          _weightController.text = weight?.toString() ?? '';
+          _heightController.text = height?.toString() ?? '';
+          
           isLoading = false;
         });
       }
+    } else {
+      debugPrint("❌ Server Error: ${response.statusCode}");
+      if (mounted) setState(() => isLoading = false);
     }
   } catch (e) {
+    debugPrint("❌ Fetch Error Detail: $e");
     if (mounted) setState(() => isLoading = false);
+    
+    // Optional: Show error to user
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to load profile data")),
+      );
+    }
   }
 }
-
-
   /// Corrected URL Helper to match your HomePage logic
   String _getBaseUrl() {
     String baseUrl;
