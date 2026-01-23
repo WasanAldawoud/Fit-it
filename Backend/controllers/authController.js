@@ -130,51 +130,53 @@ export const signIn = (req, res, next) => {
   // returns a function that needs to be called with the current request objects.
 };
 
-export const getProfile = (req, res) => {
-  if (req.user) {
-    // req.user is only available if the user has a valid session cookie.
-    // Passport automatically populates this via the 'deserializeUser' function.
-    res.status(200).json({
-      user: {
-        userId: req.user.userid || req.user.userId,
-        username: req.user.username,
-        email: req.user.email,
-        gender: req.user.gender,
-        birthdate: req.user.birthdate,
-        weight: req.user.weight || 0,
-        height: req.user.height || 0
-      }
+// Example of what your backend profile controller should return
+export const getProfile = async (req, res) => {
+  // Check all possible variations of where the ID might be stored by Passport
+  const userId = req.user?.userid || req.user?.userId || req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ authenticated: false, error: "No user in session" });
+  }
+
+  try {
+    // ⚠️ CRITICAL: Ensure your table column is 'userid' not 'id'
+    const result = await db.query(
+      "SELECT username, gender, birthdate, weight, height FROM users WHERE userid = $1", 
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json({ 
+      authenticated: true,
+      user: result.rows[0] 
     });
-  } else {
-    // If there is no cookie or the session expired:
-    res.status(401).json({ error: "Not authenticated" });
+  } catch (err) {
+    console.error("❌ Profile Fetch Error:", err.message);
+    res.status(500).json({ error: "Database error" });
   }
 };
 
-
-
 export const updateProfile = async (req, res) => {
   const { username, gender, birthdate, weight, height } = req.body;
-  
-  // Allow session OR explicit userId from body
-  const userId = req.user?.userid || req.user?.userId || req.body.userId;
+  const userId = req.user?.userid || req.user?.userId || req.user?.id;
 
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
   try {
     const result = await db.query(
       "UPDATE users SET username = $1, gender = $2, birthdate = $3, weight = $4, height = $5 WHERE userid = $6 RETURNING *",
-      // Updates the specific columns for the logged-in user.
       [username, gender, birthdate, weight, height, userId]
     );
-
     res.status(200).json({ message: "Profile updated", user: result.rows[0] });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Update Error:", err.message);
     res.status(500).json({ error: "Database update failed" });
   }
 };
-
 export const logout = (req, res) => {
   req.logout((err) => {
     if (err) {
